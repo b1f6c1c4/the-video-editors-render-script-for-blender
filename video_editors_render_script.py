@@ -240,7 +240,6 @@ if my_platform == "Windows": # Windows 10
     wait_here = ampersand = use_bash = ""                                      #  | Windows doesn't use - leave empty
     render_filename = "render.bat"                                             #  | Executable OS Commands Stored here
     clr_cmd = "cls"                                                            #  | Windows Clear command
-    end_line = "\n"
     name_of_script += "\n" + r"cmd /k"                                         #  | prevents cmd window from closing
     make_script_executable = ""
     terminal_cmd = ""
@@ -252,7 +251,6 @@ elif my_platform == "Darwin": # APPLE OSX
     render_filename = "render.sh"                                              #  | Executable OS Commands Stored here
     use_bash = "bash "                                                         #  | We run a bash script (render.sh)
     clr_cmd = "clear"
-    end_line = ";"
     make_script_executable = "chmod a+x"                                       #  | We need to make the file executable
     terminal_cmd = ""
 
@@ -263,7 +261,6 @@ elif my_platform == "Linux": # GNU/LINUX
     render_filename = "render.sh"                                              #  | Executable OS Commands Stored here
     use_bash = "bash "                                                         #  | We run a bash script (render.sh)
     clr_cmd = "clear"                                                          #  | How we clear the terminal
-    end_line = ";"
     make_script_executable = "chmod a+x"                                       #  | We need to make the file executable
 
 else: # OTHER OPERATING SYSTEMS WITH ACCESS TO BASH SHELL
@@ -273,7 +270,6 @@ else: # OTHER OPERATING SYSTEMS WITH ACCESS TO BASH SHELL
     render_filename = "render.sh"                                              #  | Executable OS Commands Stored here
     use_bash = "bash "                                                         #  | We run a bash script (render.sh)
     clr_cmd = "clear"                                                          #  | How we clear the terminal
-    end_line = ";"
     make_script_executable = "chmod a+x"                                       #  | We need to make the file executable
 
 #______________________________________________________________________________
@@ -505,7 +501,7 @@ if sound_strips == 0:                                                          #
 
 if blender_audio_codec != "NONE":                                              #  | If we're rendering audio, we can collect the Sample Format setting from User Pref.
 
-    try_sample_format = bpy.context.preferences.system.audio_sample_format #  | In Blender 2.8 and higher they moved the audio format to preferences
+    try_sample_format = bpy.context.preferences.system.audio_sample_format
 
     if try_sample_format in ("U8","S16","S24","S32"):
         if export_audio_format == "":
@@ -517,7 +513,7 @@ if blender_audio_codec != "NONE":                                              #
         if export_audio_format =="":
             export_audio_format = "F64"
 
-#----[ Switch Color Management settings to Match 2.79 defaults]                #  | In Blender 2.8, the default color management settings were changed - it triples render time.
+#----[ Switch Color Management settings to Match 2.79 defaults]
 
 if color_management_defauts_render_speed_up:
 
@@ -555,8 +551,7 @@ exited.\n\n")
     min_cores_met = 2
 
     #----[ DOES CPU HAVE MORE THAN 1 LOGICAL CORE IT CAN USE? ]
-    if cores_enabled < 2 and logical_cores_available > 1 and \
-    not bypass_low_cpu_warnings:
+    if cores_enabled < 2 and logical_cores_available > 1 and not bypass_low_cpu_warnings:
         subprocess.call(clr_cmd, shell=True)                                   #  | Lowest CPU logical core count for this script must be 2
         try:
             min_cores_met = int(input(80 * "#" + "\n\n \
@@ -604,7 +599,7 @@ if blender_file_format in ("BMP","IRIS","PNG","JPEG","JPEG2000","TARGA",\
     if render_gif:
         subprocess.call(clr_cmd, shell=True)
         print(80 *"#")
-        print("\n\n You have configued this script to render an animated gif \
+        print("\n\n You have configured this script to render an animated gif \
 and selected an\n Image Sequence format of " + blender_file_format + ". These \
 options are mutually exclusive.\n Either Change to a movie format to render \
 an animated gif, or set\n render_gif = False. \n\n")
@@ -622,8 +617,7 @@ else:
 if total_number_of_frames < cores_enabled:
     subprocess.call(clr_cmd, shell=True)
     print(80 * "#")
-    print("\n\n ! NOT ENOUGH FRAMES ALERT !\n\n You must render at least [ " +\
-    str(cores_enabled) + " ] frames\n\n")
+    print(f"\n\n ! NOT ENOUGH FRAMES ALERT !\n\n You must render at least [ {str(cores_enabled)} ] frames\n\n")
     print(80 * "#")
     exit()
 
@@ -641,14 +635,12 @@ Underscore_is_your_best_friend. \n\n")
     exit()
 
 #----[ Check if scaled resolution is divisible by 2 ]
-if blender_x_times_res_percent % 2 != 0\
-or blender_y_times_res_percent % 2 != 0:
+if blender_x_times_res_percent % 2 != 0 or blender_y_times_res_percent % 2 != 0:
     subprocess.call(clr_cmd, shell=True)
     print(80 * "#")
-    print("\n\n Your resolution isn't Divisible by 2. Blender can only render \
-X & Y valuse\n that are divisible by 2 with no remainder. Your resolution is "\
-    + str(blender_x_times_res_percent) + " x "\
-    + str(blender_y_times_res_percent) + " \n\n")
+    print("\n\n Your resolution isn\'t Divisible by 2. Blender can only render \n" \
+          + "X & Y valuse\n that are divisible by 2 with no remainder. " \
+          + f"Your resolution is {blender_x_times_res_percent} x {blender_y_times_res_percent} \n\n")
     print(80 * "#")
     exit()
 
@@ -664,7 +656,7 @@ Sequence' in the Scene Strip \n properties. Otherwise, You have chosen not to \
 permit 3D Scenes with\n the following script setting:\n\n permit_scene_strips \
 = False \n\n You can change that setting to True, or remove the Scene Strip \
 from the VSE.\n\n Note:\n Keyframed objects in the viewport can have glitchy \
-results - this safty is\n in place to prevent wasting your render time. The \
+results - this safety is\n in place to prevent wasting your render time. The \
 one scenario where you\n would want to allow 3D Scene Strips to Render is \
 when your Viewport Scene\n objects are static (no keyframes). Keyframes \
 attached to viewport objects\n lose sync when rendering with this script. \
@@ -689,7 +681,7 @@ if blender_use_lossless_output and not blender_image_sequence:
     if blender_vid_format != "AVI" and blender_vid_format != "H264":
         subprocess.call(clr_cmd, shell=True)
         print(80 * "#")
-        print("\n\n You selected a " + blender_vid_format + " container to \
+        print(f"\n\n You selected a {blender_vid_format} container to \
 hold lossless video. Please reopen the blend\n file and change to an 'AVI' \
 container. This warning also happens if you left\n your 'lossless output' \
 checkbox marked. Please open your .blend file, go to\n the encoding \
@@ -761,8 +753,8 @@ Constant Quality Settings; so you need to force \n Constant Bitrate instead.)\n"
 if blender_file_format == "FRAMESERVER":
     subprocess.call(clr_cmd, shell=True)
     print(80 * "#")
-    print("\n Please reopen your .blend file and SAVE with a different \
-Movie Format option.\n You selected: " + blender_file_format + ". It isn't \
+    print(f"\n Please reopen your .blend file and SAVE with a different \
+Movie Format option.\n You selected: {blender_file_format}. It isn't \
 supported with this script.\n\n")
     print(80 * "#")
     exit()
@@ -908,15 +900,13 @@ the first Scene showing. (First Scene is usually named, \"Scene\")\n\n"
             print_banner += " (libfdk)"
         print_banner += " ]"
         if use_ffmpeg_audio_bitrates:
-            print_banner += " [ " + str(custom_audio_bitrate)\
-            + " kb/s ] ( FFmpeg Custom Bitrate [ ON ] )"
+            print_banner += f" [ {str(custom_audio_bitrate)} kb/s ] ( FFmpeg Custom Bitrate [ ON ] )"
         else:
-            print_banner += " [ " + str(blender_audio_bitrate) + " kb/s ]"
+            print_banner += f" [ {str(blender_audio_bitrate)} kb/s ]"
 
-        print_banner += " [ VOLUME: "\
-        + str(int(round(blender_audio_volume * 100))) + "% ]\n          \
-[ Sample Rate: " + str(blender_audio_mixrate) + " ] [ Audio Format: "\
-        + export_audio_format +" ]"
+        print_banner += f" [ VOLUME: {str(int(round(blender_audio_volume * 100)))}% ]\n"
+        print_banner += f"          \n"
+        print_banner += f"[ Sample Rate: {str(blender_audio_mixrate)} ] [ Audio Format: {export_audio_format} ]"
 
     if force_one_instance_render:
         print_banner += "\n  Render Engine: " + blender_render_engine + "\n"
@@ -1282,9 +1272,9 @@ if not blender_image_sequence:
     #----[ CREATE COMMAND STRING FOR VIDEO CONCATENATION ]
     full_command_string = \
         f'{blender_command}{wait_here}"{path_to_ffmpeg}" -f concat -safe 0{can_we_overwrite} ' + \
-        f'-i "{concat_file}" -c copy "{joined_video_no_audio}{file_extension}"'
+        f'-i "{concat_file}" -c copy "{joined_video_no_audio}{file_extension}"\n'
 
-    full_command_string += end_line + wait_here                                #  | Bash's 'wait' prevents continuing until all jobs are done. I <3 U Bash
+    full_command_string += wait_here                                #  | Bash's 'wait' prevents continuing until all jobs are done. I <3 U Bash
 
     #__________________________________________________________________________
     #
@@ -1297,24 +1287,14 @@ if not blender_image_sequence:
     #----[ CREATE A STRING THAT ADDS AUDIO TO VIDEO ]
     if blender_audio_codec != "NONE":
         full_command_string += \
-            f'"{path_to_ffmpeg}"{can_we_overwrite} -i "{joined_video_no_audio}{file_extension}"{can_we_overwrite} -i "'
+            f'"{path_to_ffmpeg}"{can_we_overwrite} -i "{joined_video_no_audio}{file_extension}"{can_we_overwrite}'
 
         if user_wants_to_convert_audio:
-            full_command_string += path_to_compressed_audio
+            full_command_string += f' -i "{path_to_compressed_audio}"'
         else:
-            full_command_string += path_to_wav + export_audio_file_extension
+            full_command_string += f' -i "{path_to_wav}{export_audio_file_extension}"'
 
-        full_command_string +=\
-            "\""\
-            + " " + post_full_audio + " "\
-            + "\"" \
-            + joined_video_with_audio\
-            + file_extension\
-            + "\""
-
-        full_command_string += " " + post_finished_video
-
-        full_command_string += end_line
+        full_command_string += f' {post_full_audio} "{joined_video_with_audio}{file_extension}" {post_finished_video}\n'
 
 #______________________________________________________________________________
 #
@@ -1325,15 +1305,13 @@ if not blender_image_sequence:
         full_command_string += \
             f'"{path_to_ffmpeg}" -v warning -i "{os.path.join(joined_video_no_audio, file_extension)}" ' \
             + f'-vf "fps={str(gif_framerate)},scale={str(gif_scale)}:-1:flags={the_scaler},palettegen=stats_mode={stats_mode}" ' \
-            + f'-y "{os.path.join(path_to_av_source, png_pallette)}"'
-
-        full_command_string += end_line
+            + f'-y "{os.path.join(path_to_av_source, png_pallette)}"\n'
 
         full_command_string += \
             f'"{path_to_ffmpeg}" -v warning -i "{os.path.join(joined_video_no_audio, file_extension)}" ' \
             + f'-i "{os.path.join(path_to_av_source, png_pallette)}" ' \
             + f'-lavfi "fps={str(gif_framerate)},scale={str(gif_scale)}:-1:flags={the_scaler} [x]; [x][1:v] paletteuse=dither={dither_options}" ' \
-            + f'-y "{os.path.join(full_root_filepath, final_gif_name)}"'
+            + f'-y "{os.path.join(full_root_filepath, final_gif_name)}"\n'
 
 #______________________________________________________________________________
 #
