@@ -81,6 +81,7 @@ import bpy                                                                     #
 import os
 import time
 import shutil
+import tempfile
 import multiprocessing
 import math
 import subprocess
@@ -123,7 +124,7 @@ else: # OTHER OPERATING SYSTEMS PATHS BELOW
 display_script_settings_banner = True #(Default: True) [True or False]
 banner_wait_time = 15 # seconds (Default: 15)                                  #  | Number of seconds the script will display render settings before rendering starts.
 show_cpu_core_lowram_notice = False # (Default: False) [True or False]         #  | Display that we need 1.6GB to 3GB per CPU core available
-show_render_status = False # (Default: False) [True or False]                   #  | Display frame count (It is off by default because it may be slower.)
+show_render_status = True # (Default: True) [True or False]                    #  | Display frame count (It is off by default because it may be slower.)
 #--------------------------------------------------------------------#
 #---------------------------[ CPU SETTINGS ]-------------------------#---------
 #--------------------------------------------------------------------#
@@ -217,44 +218,42 @@ blendfile_override_setting += "    scene.render.ffmpeg.audio_codec = 'NONE'\n" #
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX#
 
-#----[ GET NAME OF THIS SCRIPT ]
-name_of_script = os.path.basename(__file__)
-
 #______________________________________________________________________________
 #
 #                        OPERATING SYSTEM SPECIFIC SETTINGS
 #______________________________________________________________________________
 
-if my_platform == "Windows": # Windows 10
-    start_blender = start_ffmpeg = r'start " " /max /B '                       #  | Leave this setting. Win10 v1809+ build broke start - now needs /max arg to work.
-    wait_here = ampersand = use_bash = ""                                      #  | Windows doesn't use - leave empty
-    render_filename = "render.bat"                                             #  | Executable OS Commands Stored here
-    name_of_script += "\n" + r"cmd /k"                                         #  | prevents cmd window from closing
-    make_script_executable = ""
+if True:
 
-elif my_platform == "Darwin": # APPLE OSX
-    start_blender = start_ffmpeg = ""                                          #  | Only Windows uses this - Set to empty
-    wait_here = "wait;"                                                        #  | this wait prevents execution until blender is done.
-    ampersand = "&"                                                            #  | This places blender instance in background.
-    render_filename = "render.sh"                                              #  | Executable OS Commands Stored here
-    use_bash = "bash "                                                         #  | We run a bash script (render.sh)
-    make_script_executable = "chmod a+x"                                       #  | We need to make the file executable
+    if my_platform == "Windows": # Windows 10
+        start_blender = start_ffmpeg = r'start " " /max /B '                       #  | Leave this setting. Win10 v1809+ build broke start - now needs /max arg to work.
+        wait_here = ampersand = use_bash = ""                                      #  | Windows doesn't use - leave empty
+        render_filename = "render.bat"                                             #  | Executable OS Commands Stored here
+        make_script_executable = ""
 
-elif my_platform == "Linux": # GNU/LINUX
-    start_blender = start_ffmpeg = ""                                          #  | Only Windows uses this - Set to empty
-    wait_here = "wait;"                                                        #  | This is used to wait until background commands finish
-    ampersand = "&"                                                            #  | This is used to send commmand to background
-    render_filename = "render.sh"                                              #  | Executable OS Commands Stored here
-    use_bash = "bash "                                                         #  | We run a bash script (render.sh)
-    make_script_executable = "chmod a+x"                                       #  | We need to make the file executable
+    elif my_platform == "Darwin": # APPLE OSX
+        start_blender = start_ffmpeg = ""                                          #  | Only Windows uses this - Set to empty
+        wait_here = "wait;"                                                        #  | this wait prevents execution until blender is done.
+        ampersand = "&"                                                            #  | This places blender instance in background.
+        render_filename = "render.sh"                                              #  | Executable OS Commands Stored here
+        use_bash = "bash "                                                         #  | We run a bash script (render.sh)
+        make_script_executable = "chmod a+x"                                       #  | We need to make the file executable
 
-else: # OTHER OPERATING SYSTEMS WITH ACCESS TO BASH SHELL
-    start_blender = start_ffmpeg = ""                                          #  | Only Windows uses this - Set to empty
-    wait_here = "wait;"                                                        #  | This is used to wait until background commands finish
-    ampersand = "&"                                                            #  | This is used to send commmand to background
-    render_filename = "render.sh"                                              #  | Executable OS Commands Stored here
-    use_bash = "bash "                                                         #  | We run a bash script (render.sh)
-    make_script_executable = "chmod a+x"                                       #  | We need to make the file executable
+    elif my_platform == "Linux": # GNU/LINUX
+        start_blender = start_ffmpeg = ""                                          #  | Only Windows uses this - Set to empty
+        wait_here = "wait;"                                                        #  | This is used to wait until background commands finish
+        ampersand = "&"                                                            #  | This is used to send commmand to background
+        render_filename = "render.sh"                                              #  | Executable OS Commands Stored here
+        use_bash = "bash "                                                         #  | We run a bash script (render.sh)
+        make_script_executable = "chmod a+x"                                       #  | We need to make the file executable
+
+    else: # OTHER OPERATING SYSTEMS WITH ACCESS TO BASH SHELL
+        start_blender = start_ffmpeg = ""                                          #  | Only Windows uses this - Set to empty
+        wait_here = "wait;"                                                        #  | This is used to wait until background commands finish
+        ampersand = "&"                                                            #  | This is used to send commmand to background
+        render_filename = "render.sh"                                              #  | Executable OS Commands Stored here
+        use_bash = "bash "                                                         #  | We run a bash script (render.sh)
+        make_script_executable = "chmod a+x"                                       #  | We need to make the file executable
 
 #______________________________________________________________________________
 #
@@ -285,11 +284,11 @@ if True:
     full_root_filepath = os.path.dirname(bpy.data.filepath)
 
     #----[ GIVE TEMP FILE-FOLDERS NAMES ]
-    working_dir_temp = os.path.abspath(os.path.join(full_root_filepath, "Script_Working_Folder"))
+    working_dir_temp = os.path.abspath(tempfile.mkdtemp(prefix='render-script-'))
     img_sequence_dir = os.path.abspath(os.path.join(full_root_filepath, "IMG_Sequence"))
 
     #----[ SET SCRIPT DEFAULTS VARIABLES ]
-    blender_command = full_command_string = "" # (Default= "")
+    blender_command = "" # (Default= "")
     path_to_av_source = os.path.join(working_dir_temp, "AV_Source")
     path_to_other_files = os.path.join(working_dir_temp, "Other_Files")            #  | Look at "render." file in this folder to see the "secret sauce."
 
@@ -298,8 +297,9 @@ if True:
     png_palette = os.path.abspath(os.path.join(path_to_av_source, "palette.png"))
 
     #----[ GIVE TEMP FILES NAMES ]
-    wav_filename = "Full_Audio"
+    path_to_wav = os.path.join(path_to_av_source, "Full_Audio")
     joined_video_no_audio = os.path.join(path_to_av_source, "Joined_Video")        # | extension TBD
+    the_audio_with_img_seq = os.path.join(full_root_filepath, "Finished_Audio")    # | extension TBD
     joined_video_with_audio = os.path.join(full_root_filepath, "Finished_Video")   # | extension TBD
     blendfile_override_setting_filename = os.path.join(path_to_other_files, "OverrideSettings.py")
     concat_file = os.path.join(path_to_other_files, "Concat_Video_List.txt")
@@ -336,6 +336,7 @@ if True:
 #______________________________________________________________________________
 
 if True:
+
     # Blender version reported by .blend file
     blender_ver = str(bpy.data.version[0]) + "" + str(bpy.data.version[1]) + "0"  # edited out bpy.data.version[2] due to changes in blender 2.83
     blender_ver = int(blender_ver)                                                #  | 2790 int value (2.79.0)
@@ -433,8 +434,8 @@ if True:
             #Start and End Frames                                          (eg)
             start_frame_is = scene.frame_start #                           (1)
             end_frame_is = scene.frame_end #                               (1000)
-            total_number_of_frames = end_frame_is - start_frame_is #       (999)
-            total_number_of_frames += 1 #                                  (1000)  #  | We need to add 1 because the first frame is included
+            total_frames = end_frame_is - start_frame_is #       (999)
+            total_frames += 1 #                                  (1000)  #  | We need to add 1 because the first frame is included
 
             #Render Engine                                                 (eg)
             blender_render_engine = scene.render.engine #                  (CYCLES)
@@ -580,8 +581,9 @@ if True:
 #______________________________________________________________________________
 
 if True:
+
     #----[ MAKE SURE WE HAVE AT LEAST 1 FRAMES PER RENDER INSTANCE ]
-    if total_number_of_frames < cores_enabled:
+    if total_frames < cores_enabled:
         print(80 * "#")
         print(f"\n\n ! NOT ENOUGH FRAMES ALERT !\n\n You must render at least [ {str(cores_enabled)} ] frames\n\n")
         print(80 * "#")
@@ -891,9 +893,6 @@ if True:
         else:
             user_wants_to_convert_audio = True
 
-        #----[ SET PATH TO THE PRIMARY EXPORTED AUDIO FILE: WAV(PCM) ]
-        path_to_wav = os.path.join(path_to_av_source, wav_filename)
-
         #----[ SET AUDIO FILE EXTENSIONS ]
         if export_audio_codec == "PCM":
             export_audio_file_extension = ".wav"
@@ -902,8 +901,6 @@ if True:
 
         if my_platform == "Windows":
             print("\n\n Cancel this Script at any time by pressing [ CTRL + BREAK ] \n")
-        elif my_platform == "Darwin":
-            print("\n\n Cancel this Script at any time by pressing [ CTRL + C ] \n")
         else:
             print("\n\n Cancel this Script at any time by pressing [ CTRL + C ] \n")
 
@@ -911,7 +908,6 @@ if True:
         path_to_save_pcm = path_to_wav + export_audio_file_extension
 
         blender_audio_extract_time_start = time.time()                             #  | Start PCM audio timer
-
         bpy.ops.sound.mixdown(
             filepath=path_to_save_pcm,
             relative_path=False,
@@ -923,94 +919,75 @@ if True:
             bitrate=export_audio_bitrate,
             split_channels=export_audio_split_channels,
         )
-
         if blender_audio_volume != 1.0:                                            #  | If Project Volume is changed, adjust it.
-
-            fix_volume = "\"" + path_to_ffmpeg + "\"" + " -i " + "\""\
-            + path_to_save_pcm + "\"" + " -af "\
-            + "\"volume=" + str(blender_audio_volume) + "\""\
-            + " " + "\"" + path_to_av_source + wav_filename + "_newVolume" + export_audio_file_extension + "\""
-            subprocess.call(fix_volume, shell=True) # TODO: b1f6c1c4
-
-            move_wav_from = path_to_av_source + wav_filename + "_newVolume" + export_audio_file_extension # TODO: b1f6c1c4
-
-            move_wav_to = path_to_save_pcm
-
-            os.remove(move_wav_to)                                                 #  | Delete the orginal WAV file
-            shutil.move(move_wav_from, move_wav_to)                                #  | Replace original WAV file with fixVolume version.
+            move_wav_from = f"{path_to_wav}_newVolume{export_audio_file_extension}"
+            fix_volume = f'"{path_to_ffmpeg}" -i "{path_to_save_pcm}" ' \
+                         + f'-af "volume={blender_audio_volume}" "{move_wav_from}"'
+            subprocess.call(fix_volume, shell=True)
+            os.remove(path_to_save_pcm)                                            #  | Delete the orginal WAV file
+            shutil.move(move_wav_from, path_to_save_pcm)                           #  | Replace original WAV file with fixVolume version.
         blender_audio_extract_time_end = time.time()                               #  | End lossless audio timer
 
-        #----[ CREATE LOSSY AUDIO COMMAND STRING ]
-        path_to_compressed_audio = path_to_wav + "." # add extension later.
-
-        if blender_audio_codec == "AAC":                                           #  | Make acception for AAC codec
-            path_to_compressed_audio += "m4a"                                      #  | Use .m4a extension instead of .aac
-            hold_audio_codec = "m4a"                                               #  | We save this for later.
-
-        elif blender_audio_codec == "VORBIS":                                      #  | Vorbis needs to use ogg container
-            path_to_compressed_audio += "ogg"
-            hold_audio_codec = "ogg"                                               #  | We save this for later.
-
-        else:
-            hold_audio_codec = blender_audio_codec.lower()                         #  | Used for audio extension of all but aac
-            path_to_compressed_audio += blender_audio_codec.lower()
-
-        wav_to_compressed_audio = f'"{path_to_ffmpeg}"{can_we_overwrite} -i "{path_to_wav}{export_audio_file_extension}" -c:a '
-        if use_libfdk_acc:                                                         #  | If libfdk_acc is available it can be used here.
-            wav_to_compressed_audio += "libfdk_acc" + " -b:a "
-        else:
-            wav_to_compressed_audio += blender_audio_codec.lower() + " -b:a "
-
-        #----[ SET SUPPORTED AUDIO BITRATE RANGES ]
-        if blender_audio_codec == "AC3":
-            min_audio_bitrate = min_audio_bitrate_ac3
-            max_audio_bitrate = max_audio_bitrate_ac3
-        elif blender_audio_codec == "AAC":
-            min_audio_bitrate = min_audio_bitrate_aac
-            max_audio_bitrate = max_audio_bitrate_aac
-        elif blender_audio_codec == "MP2":
-            min_audio_bitrate = min_audio_bitrate_mp2
-            max_audio_bitrate = max_audio_bitrate_mp2
-        elif blender_audio_codec == "MP3":
-            max_audio_bitrate = max_audio_bitrate_mp3
-            min_audio_bitrate = min_audio_bitrate_mp3
-
-        #----[ IF USING FFMPEG BITRATE, KEEP IN SUPPORTED RANGE ]
-        if use_ffmpeg_audio_bitrates:
-            if custom_audio_bitrate < min_audio_bitrate:
-                blender_audio_bitrate = min_audio_bitrate
-            elif custom_audio_bitrate > max_audio_bitrate:
-                blender_audio_bitrate = max_audio_bitrate
-            else:
-                blender_audio_bitrate = custom_audio_bitrate
-        else:
-            #----[ IF USING BLENDER'S BITRATE, KEEP IN SUPPORTED RANGE ]
-            if blender_audio_bitrate < min_audio_bitrate:
-                blender_audio_bitrate = min_audio_bitrate
-            if blender_audio_bitrate > max_audio_bitrate:
-                blender_audio_bitrate = max_audio_bitrate
-
-        wav_to_compressed_audio += str(blender_audio_bitrate) + "k"
         if blender_audio_codec == "AAC":
-            if not use_libfdk_acc:
-                wav_to_compressed_audio += " -strict experimental"                 #  | strict experimental makes AAC encode work. (Legacy: phased out on builds after 12/5/2015)
+            hold_audio_codec = "m4a"
+        elif blender_audio_codec == "VORBIS":
+            hold_audio_codec = "ogg"
+        else:
+            hold_audio_codec = blender_audio_codec.lower()                         # | Used for audio extension of all but aac
 
-        if blender_audio_codec == "VORBIS":
-            wav_to_compressed_audio += " -strict experimental"                     #  | strict experimental makes VORBIS encode work.
-
-        if blender_audio_codec == "OPUS":
-            wav_to_compressed_audio += " -strict experimental"                     #  | strict experimental makes OPUS encode work.
-
-        wav_to_compressed_audio += f' "{path_to_compressed_audio}"'
-
-        #----[ CONVERT THE AUDIO ]
         if user_wants_to_convert_audio:
-            print(f' Converting Audio using {blender_audio_codec} codec using bitrate of {str(blender_audio_bitrate)}k')
-            audio_conversion_time_start = time.time()                              #  | Start audio conversion timer
+
+            #----[ CREATE LOSSY AUDIO COMMAND STRING ]
+            wav_to_compressed_audio = f'"{path_to_ffmpeg}"{can_we_overwrite} -i "{path_to_wav}{export_audio_file_extension}"'
+            if use_libfdk_acc:                                                         #  | If libfdk_acc is available it can be used here.
+                wav_to_compressed_audio += " -c:a libfdk_acc "
+            else:
+                wav_to_compressed_audio += f" -c:a {blender_audio_codec.lower()} "
+
+            #----[ SET SUPPORTED AUDIO BITRATE RANGES ]
+            if blender_audio_codec == "AC3":
+                min_audio_bitrate = min_audio_bitrate_ac3
+                max_audio_bitrate = max_audio_bitrate_ac3
+            elif blender_audio_codec == "AAC":
+                min_audio_bitrate = min_audio_bitrate_aac
+                max_audio_bitrate = max_audio_bitrate_aac
+            elif blender_audio_codec == "MP2":
+                min_audio_bitrate = min_audio_bitrate_mp2
+                max_audio_bitrate = max_audio_bitrate_mp2
+            elif blender_audio_codec == "MP3":
+                max_audio_bitrate = max_audio_bitrate_mp3
+                min_audio_bitrate = min_audio_bitrate_mp3
+
+            #----[ IF USING FFMPEG BITRATE, KEEP IN SUPPORTED RANGE ]
+            if use_ffmpeg_audio_bitrates:
+                if custom_audio_bitrate < min_audio_bitrate:
+                    blender_audio_bitrate = min_audio_bitrate
+                elif custom_audio_bitrate > max_audio_bitrate:
+                    blender_audio_bitrate = max_audio_bitrate
+                else:
+                    blender_audio_bitrate = custom_audio_bitrate
+            else:
+                #----[ IF USING BLENDER'S BITRATE, KEEP IN SUPPORTED RANGE ]
+                if blender_audio_bitrate < min_audio_bitrate:
+                    blender_audio_bitrate = min_audio_bitrate
+                if blender_audio_bitrate > max_audio_bitrate:
+                    blender_audio_bitrate = max_audio_bitrate
+            wav_to_compressed_audio += f" -b:a {blender_audio_bitrate}k"
+
+            path_to_compressed_audio = path_to_wav + "." # add extension later.
+            if blender_audio_codec == "AAC":                                           #  | Make acception for AAC codec
+                path_to_compressed_audio += "m4a"                                      #  | Use .m4a extension instead of .aac
+            elif blender_audio_codec == "VORBIS":                                      #  | Vorbis needs to use ogg container
+                path_to_compressed_audio += "ogg"
+            else:
+                path_to_compressed_audio += blender_audio_codec.lower()
+            wav_to_compressed_audio += f' "{path_to_compressed_audio}"'
+
+            print(f' Converting Audio using {blender_audio_codec} codec using bitrate of {blender_audio_bitrate}k')
 
             #----[ CONVERT WAV TO COMPRESSED FORMAT ]
+            audio_conversion_time_start = time.time()                              #  | Start audio conversion timer
             subprocess.call(wav_to_compressed_audio, shell=True)
-
             audio_conversion_time_end = time.time()                                #  | End audio conversion timer
 
             #----[ MAKE SURE THAT A LOSSY FILE WAS CREATED ]
@@ -1018,11 +995,12 @@ if True:
                 print(" There was an error compressing your audio. Please change your render settings.")
                 exit()
 
-    #______________________________________________________________________________
-    #
-    #            SET THE EXTENSIONS FOR EACH OF OUR VIDEO FORMATS/CODECS
-    #______________________________________________________________________________
+#______________________________________________________________________________
+#
+#            SET THE EXTENSIONS FOR EACH OF OUR VIDEO FORMATS/CODECS
+#______________________________________________________________________________
 
+if True:
     if blender_file_format in ("AVI_JPEG","AVI_RAW"):
         file_extension = ".avi"
     elif blender_vid_format in ("AVI","H264","XVID"):
@@ -1045,6 +1023,9 @@ if True:
         file_extension = ".mov"
     elif blender_vid_format == "WEBM":
         file_extension = ".webm"
+    else:
+        print(f'Unknown blender_vid_extension {blender_vid_format}')
+        exit(1)
 
 #______________________________________________________________________________
 #
@@ -1054,7 +1035,7 @@ if True:
 if True:
 
     #----[ SET NUMBER OF FRAMES THAT WILL BE RENDERED ON EACH ENABLED CORE ]
-    portion_of_frames_per_core = math.ceil(total_number_of_frames / cores_enabled)
+    portion_of_frames_per_core = math.ceil(total_frames / cores_enabled)
 
     #----[ GET THE FILENAME OF YOUR CUSTOM BLEND FILE ]
     filename = bpy.path.basename(bpy.context.blend_data.filepath)
@@ -1067,10 +1048,10 @@ if True:
 
     while next_core <= cores_enabled:
 
-        blender_command = blender_command + start_blender
+        blender_command += start_blender
         #----[ IF WINDOWS PLATFORM IS PRESENT, CREATE INDIVIDUAL LOCK FILES ]
         if my_platform == "Windows":
-            blender_command += fr'9>\"%lock%{str(next_core)}\" '  #  | only Windows needs to create a lock file for each blender job.
+            blender_command += fr'9>\"%lock%{next_core}\" '  #  | only Windows needs to create a lock file for each blender job.
 
         blender_command += \
             f'"{blender_path}" -b "{filename_and_path}"' \
@@ -1118,42 +1099,27 @@ if True:
 
         blender_command = wait_blender_routine
 
-#=============================================================================#
-#                    IF IMAGE SEQUENCE, SKIP TO FINAL RENDER                  #
-#=============================================================================#
-
-if blender_image_sequence:
-    full_command_string = blender_command + wait_here
-
 #______________________________________________________________________________
 #
-#                              VIDEO CONCATENATION
+#                      VIDEO CONCATENATION (if not img seq)
+#                    MUX AUDIO AND VIDEO INTO ONE MEDIA FILE
 #______________________________________________________________________________
+
+full_command_string = blender_command + wait_here
 
 if not blender_image_sequence:
 
-    num_vids = 1
-    vid_file = ""
-
-    while num_vids <= cores_enabled:
-        fn = f'{num_vids}{file_extension}'
-        vid_file += f"file '{os.path.join(path_to_av_source, fn)}'\n"
-        num_vids += 1
-
+    vid_file_list = ""
+    for i in range(cores_enabled):
+        fn = f'{i+1:d}{file_extension}'
+        vid_file_list += f"file '{os.path.join(path_to_av_source, fn)}'\n"
     with open(concat_file, "w+") as f:
-        f.write(vid_file)
+        f.write(vid_file_list)
 
     #----[ CREATE COMMAND STRING FOR VIDEO CONCATENATION ]
-    full_command_string = \
-        f'{blender_command}{wait_here}"{path_to_ffmpeg}" -f concat -safe 0{can_we_overwrite} ' + \
-        f'-i "{concat_file}" -c copy "{joined_video_no_audio}{file_extension}"\n'
-
-    full_command_string += wait_here                                #  | Bash's 'wait' prevents continuing until all jobs are done. I <3 U Bash
-
-    #__________________________________________________________________________
-    #
-    #                  MUX AUDIO AND VIDEO INTO ONE MEDIA FILE
-    #__________________________________________________________________________
+    full_command_string += \
+        f'"{path_to_ffmpeg}" -f concat -safe 0 -i "{concat_file}" ' + \
+        f'-c copy "{joined_video_no_audio}{file_extension}"{can_we_overwrite}\n'
 
     #----[ CREATE A STRING THAT ADDS AUDIO TO VIDEO ]
     if blender_audio_codec != "NONE":
@@ -1172,17 +1138,17 @@ if not blender_image_sequence:
 #                              CREATE ANIMATED GIF
 #______________________________________________________________________________
 
-    if render_gif:
-        full_command_string += \
-            f'"{path_to_ffmpeg}" -v warning -i "{joined_video_no_audio}{file_extension}" ' \
-            + f'-vf "fps={str(gif_framerate)},scale={str(gif_scale)}:-1:flags={the_scaler},palettegen=stats_mode={stats_mode}" ' \
-            + f'-y "{png_palette}"\n'
+if not blender_image_sequence and render_gif:
+    full_command_string += \
+        f'"{path_to_ffmpeg}" -v warning -i "{joined_video_no_audio}{file_extension}" ' \
+        + f'-vf "fps={gif_framerate},scale={gif_scale}:-1:flags={the_scaler},palettegen=stats_mode={stats_mode}" ' \
+        + f'-y "{png_palette}"\n'
 
-        full_command_string += \
-            f'"{path_to_ffmpeg}" -v warning -i "{joined_video_no_audio}{file_extension}" ' \
-            + f'-i "{png_palette}" ' \
-            + f'-lavfi "fps={str(gif_framerate)},scale={str(gif_scale)}:-1:flags={the_scaler} [x]; [x][1:v] paletteuse=dither={dither_options}" ' \
-            + f'-y "{final_gif_name}"\n'
+    full_command_string += \
+        f'"{path_to_ffmpeg}" -v warning -i "{joined_video_no_audio}{file_extension}" ' \
+        + f'-i "{png_palette}" ' \
+        + f'-lavfi "fps={gif_framerate},scale={gif_scale}:-1:flags={the_scaler} [x]; [x][1:v] paletteuse=dither={dither_options}" ' \
+        + f'-y "{final_gif_name}"\n'
 
 #______________________________________________________________________________
 #
@@ -1192,7 +1158,7 @@ if not blender_image_sequence:
 if True:
 
     #----[ SET PATH TO THE RENDER FILE ]
-    render_filename_location = os.path.join(path_to_other_files, render_filename)
+    render_filename_location = os.path.abspath(os.path.join(path_to_other_files, render_filename))
 
     #----[ WRITE COMMAND STRINGS TO FILE ]
     with open(render_filename_location, "w+") as f:
@@ -1203,24 +1169,47 @@ if True:
     print(commands_to_execute)
 
     #----[ EXECUTE THE RENDER COMMAND FILE ]
-
-    if show_render_status == False:                                                #  | Render Status happens in this section. Thanks to https://github.com/mitxela
+    if not show_render_status:                                                #  | Render Status happens in this section. Thanks to https://github.com/mitxela
         subprocess.call(commands_to_execute, shell=True) # run script in terminal
     else:
         proc = subprocess.Popen(commands_to_execute, shell=True, stdout=subprocess.PIPE)
 
-        pattern = re.compile(' Time:') # printed after each frame has rendered
+        pattern = re.compile(r'^ Time:') # printed after each frame has rendered
         rendered_frames = 0
 
         for line in proc.stdout:
             if pattern.match(line.decode('utf-8')):
-                rendered_frames +=1
-                print("Progress: %02.2f%% (%d / %d)" % (
-                    100 * rendered_frames / total_number_of_frames,
-                    rendered_frames,
-                    total_number_of_frames
-                    ), end='\r')
+                rendered_frames += 1
+                print(
+                    f"Progress: {100 * rendered_frames / total_frames:02.2f}% ({rendered_frames:d} / {total_frames:d})",
+                    end='\r')
         proc.wait()
+
+#______________________________________________________________________________
+#
+#                               SCRIPT TIMER INFO
+#______________________________________________________________________________
+
+if True:
+
+    def show_time(st, t):
+        m, s = divmod(t, 60)
+        h, m = divmod(m, 60)
+        if h > 0:
+            print(f"\n {st} took {h:d} Hours {m:02d} Minutes {s:02d} Seconds\n")
+        elif m > 0:
+            print(f"\n {st} took {m:02d} Minutes {s:02d} Seconds\n")
+        else:
+            print(f"\n {st} took {s:02d} Seconds\n")
+
+
+    print(80 * "#" + "\n\n")
+    if blender_audio_codec != "NONE":
+        show_time('Audio Extract', blender_audio_extract_time_end - blender_audio_extract_time_start)
+        if user_wants_to_convert_audio:
+            show_time('Audio Encode', audio_conversion_time_end - audio_conversion_time_start)
+    show_time('Render (incl. ffmpeg concat and A/V mux)', time.time() - start_of_render_time)
+    print("\n\n" + 80 * "#")
 
 #______________________________________________________________________________
 #
@@ -1230,30 +1219,23 @@ if True:
 if True:
 
     #----[ IF YOU HAVE NO AUDIO, NO NEED TO MUX, JUST MOVE VIDEO UP A DIRECTORY ]
-    if blender_audio_codec == "NONE" and not render_gif\
-    and not blender_image_sequence:
-        move_from = joined_video_no_audio + file_extension
-        move_to = joined_video_with_audio + file_extension
-        shutil.move(move_from, move_to)
+    if blender_audio_codec == "NONE" and not render_gif and not blender_image_sequence:
+        shutil.move(
+            joined_video_no_audio + file_extension,
+            joined_video_with_audio + file_extension,
+        )
 
     #----[ IF IMAGE SEQUENCE EXISTS, MOVE ANY WANTED AUDIO UP A DIRECTORY ]
     if blender_image_sequence and blender_audio_codec != "NONE":
-        if not user_wants_to_convert_audio:
-            move_from = path_to_av_source + wav_filename + export_audio_file_extension
-            move_to = full_root_filepath + wav_filename + "_for_"\
-            + img_sequence_dir + export_audio_file_extension # TODO: b1f6c1c4
-            shutil.move(move_from, move_to)
-
-        elif user_wants_to_convert_audio:
-            move_from = path_to_compressed_audio
-            move_to = full_root_filepath + wav_filename + "_for_ "\
-            + img_sequence_dir + "." + hold_audio_codec # TODO: b1f6c1c4
-            shutil.move(move_from, move_to)
+        shutil.move(
+            path_to_wav + export_audio_file_extension if not user_wants_to_convert_audio else path_to_compressed_audio,
+            the_audio_with_img_seq + export_audio_file_extension,
+        )
 
     #----[ DELETE WORKING DIRECTORY ]
     if auto_delete_temp_files:
         try:
-            shutil.rmtree(full_root_filepath + working_dir_temp)
+            shutil.rmtree(working_dir_temp)
         except:
             print(80 *"#")
             print(f" {working_dir_temp} is locked by the Operating System. So it can\'t be Deleted\n automatically. "
@@ -1261,59 +1243,3 @@ if True:
                   f"the script attempts to Delete. This doesn\'t\n harm the final video render in any way. This "
                   f"script will run normally the next\n time you run it. Just remember to stop viewing the files in "
                   f"the\n {working_dir_temp} before the script finishes.")
-
-#______________________________________________________________________________
-#
-#                               SCRIPT TIMER INFO
-#______________________________________________________________________________
-
-print(80 * "#" + "\n\n")
-
-if blender_audio_codec != "NONE":
-    #----[ TIME TO EXTRACT AUDIO ]
-    time_to_extract_audio = blender_audio_extract_time_end - blender_audio_extract_time_start
-
-    m, s = divmod(time_to_extract_audio, 60)
-    h, m = divmod(m, 60)
-
-    if h > 0:
-        print(f"\n Audio Extract took {h:d} Hours {m:02d} Minutes {s:02d} Seconds\n")
-
-    elif m > 0:
-        print(f"\n Audio Extract took {m:02d} Minutes {s:02d} Seconds\n")
-
-    else:
-        print(f"\n Audio Extract took {s:02d} Seconds\n")
-
-    if user_wants_to_convert_audio:
-        #----[ TIME TO CONVERT AUDIO TO OTHER FORMAT ]
-        time_to_convert_lossy_audio = audio_conversion_time_end - audio_conversion_time_start
-
-        m, s = divmod(time_to_convert_lossy_audio , 60)
-        h, m = divmod(m, 60)
-
-        if h > 0:
-            print(f"\n Audio Encode took {h:d} Hours {m:02d} Minutes {s:02d} Seconds\n")
-
-        elif m > 0:
-            print(f"\n Audio Encode took {m:02d} Minutes {s:02d} Seconds\n")
-
-        else:
-            print(f" Audio Encode took {s:02d} Seconds\n")
-
-#----[ TOTAL TIME TO PROCESS ALL JOBS ]
-end_of_script_time = time.time() - start_of_render_time
-
-m, s = divmod(end_of_script_time, 60)
-h, m = divmod(m, 60)
-
-if h > 0:
-    print(f" Render took {h:d} Hours {m:02d} Minutes {s:02d} Seconds")
-
-elif m > 0:
-    print(f" Render took {m:02d} Minutes {s:02d} Seconds")
-
-else:
-    print(f" Render took {s:02d} Seconds")
-
-print("\n\n" + 80 * "#")
