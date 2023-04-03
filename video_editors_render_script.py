@@ -127,7 +127,7 @@ output_seq_dir = os.path.join(full_root_filepath, f"{stem_name}-seq")
 #--------------------------------------------------------------------#
 
 display_script_settings_banner = True #(Default: True) [True or False]
-banner_wait_time = 15 # seconds (Default: 15)                                  #  | Number of seconds the script will display render settings before rendering starts.
+banner_wait_time = 5 # seconds (Default: 5)                                    #  | Number of seconds the script will display render settings before rendering starts.
 show_cpu_core_lowram_notice = False # (Default: False) [True or False]         #  | Display that we need 1.6GB to 3GB per CPU core available
 show_render_status = True # (Default: True) [True or False]                    #  | Display frame count (It is off by default because it may be slower.)
 
@@ -305,12 +305,6 @@ if True:
     #----[ FALLBACK AUDIO BITRATES ]
     max_audio_bitrate = 320 # kb/s
     min_audio_bitrate = 32 # kb/s
-
-    #----[ SET OVERWRITING SETTINGS ]
-    if auto_overwrite_files:
-        can_we_overwrite = " -y"
-    else:
-        can_we_overwrite = ""
 
     #----[ DETECT IF BLENDER AND FFMPEG PATHS ARE CORRECTLY CONFIGURED ]
     def verify_cmd(path, prog):
@@ -708,6 +702,47 @@ if True:
 
 #______________________________________________________________________________
 #
+#                               DETECT OVERWRITES
+#______________________________________________________________________________
+
+if True:
+
+    # ----[ GIFS DON'T USE AUDIO ]
+    if render_gif:
+        blender_audio_codec = "NONE"  # | GIF setting will disable Audio
+
+    # ----[ TURN OFF AUDIO IF NOT TYPICALLY USED WITH FORMAT ]                      #  | Blender disables audio for these formats - so we will too.
+    if blender_file_format in ("AVI_JPEG", "AVI_RAW"):
+        blender_audio_codec = "NONE"
+
+    overwriting_files = []
+
+
+    def verify_overwrites(pa):
+        if os.path.exists(pa):
+            overwriting_files.append(pa)
+
+
+    if render_gif:
+        verify_overwrites(output_gif_file)
+    elif blender_image_sequence:
+        verify_overwrites(output_seq_dir)
+        if blender_audio_codec != "NONE":
+            verify_overwrites(output_audio_file)
+    else:
+        verify_overwrites(output_video_file)
+        if separate_audio_video and blender_audio_codec != "NONE":
+            verify_overwrites(output_audio_file)
+
+    if len(overwriting_files) > 0 and not auto_overwrite_files:
+        print("FATAL: The following files will be overwritten:")
+        for f in overwriting_files:
+            print(f"  {f}")
+        print("Set `auto_overwrite_files` to True, or manually remove the files.")
+        exit(1)
+
+#______________________________________________________________________________
+#
 #                             SCRIPT SETTINGS BANNER                           #  | Messy because Blender won't unmark settings, it hides and ignores.
 #______________________________________________________________________________
 
@@ -757,8 +792,10 @@ if display_script_settings_banner:
     if auto_delete_temp_files:
         print(" Auto Deletion of Temp Files is [ ON ]\n")
 
-    if auto_overwrite_files:
-        print(" Auto OverWriting of old render files is [ ON ]\n")
+    if auto_overwrite_files and len(overwriting_files) > 0:
+        print(" WARNING: The following files will be overwritten:")
+        for f in overwriting_files:
+            print(f"   {f}")
 
     print_banner = 30 * "-" + "[ RENDER SETTINGS ]" + 30 * "-" + "\n\n"
 
@@ -836,8 +873,7 @@ if display_script_settings_banner:
     print("\n" + 80 * "#" + "\n")
 
     while banner_wait_time:
-        mins, secs = divmod(banner_wait_time, 60)
-        time_format = f' Render Will Begin in {secs:02d} seconds'
+        time_format = f'Execution Will Begin in {banner_wait_time:02d} seconds'
         print(time_format, end='\r')
         time.sleep(1)
         banner_wait_time -= 1
@@ -853,6 +889,11 @@ if True:
     os.makedirs(path_to_av_source)
     os.makedirs(path_to_other_files)
 
+    #----[ REMOVE OLD OUTPUTS ]
+    if auto_overwrite_files: # should always be true, but just in case
+        for f in overwriting_files:
+            shutil.rmtree(f)
+
     #----[ CREATE .BLEND OVERRIDE FILE ]
     with open(settings_file, "w+") as f:
         f.write(blendfile_override_setting)
@@ -862,130 +903,120 @@ if True:
 #                                 AUDIO SECTION
 #_______________________________________________________________________________
 
-if True:
+#----[ START STOPWATCH TO TIME RENDERING ]
+start_of_render_time = time.time()
 
-    #----[ GIFS DON'T USE AUDIO ]
-    if render_gif:
-        blender_audio_codec = "NONE"                                               #  | GIF setting will disable Audio
+if blender_audio_codec != "NONE":
 
-    #----[ TURN OFF AUDIO IF NOT TYPICALLY USED WITH FORMAT ]                      #  | Blender disables audio for these formats - so we will too.
-    if blender_file_format in ("AVI_JPEG","AVI_RAW"):
-        blender_audio_codec = "NONE"
+    #----[ CHECK IF USER WANTS TO CONVERT TO A LOSSY AUDIO CODEC ]
+    if blender_audio_codec == "PCM":
+        user_wants_to_convert_audio = False
+    else:
+        user_wants_to_convert_audio = True
 
-    #----[ START STOPWATCH TO TIME RENDERING ]
-    start_of_render_time = time.time()
+    #----[ SET AUDIO FILE EXTENSIONS ]
+    if export_audio_codec == "PCM":
+        export_audio_file_extension = ".wav"
+    else:
+        export_audio_file_extension = "." + export_audio_codec.lower()
 
-    if blender_audio_codec != "NONE":
+    if my_platform == "Windows":
+        print("\n\n Cancel this Script at any time by pressing [ CTRL + BREAK ] \n")
+    else:
+        print("\n\n Cancel this Script at any time by pressing [ CTRL + C ] \n")
 
-        #----[ CHECK IF USER WANTS TO CONVERT TO A LOSSY AUDIO CODEC ]
-        if blender_audio_codec == "PCM":
-            user_wants_to_convert_audio = False
+    print(f" Extracting Audio as {export_audio_container}({export_audio_codec})")
+    path_to_save_pcm = path_to_wav + export_audio_file_extension
+
+    blender_audio_extract_time_start = time.time()                             #  | Start PCM audio timer
+    bpy.ops.sound.mixdown(
+        filepath=path_to_save_pcm,
+        relative_path=False,
+        check_existing=False,
+        accuracy=export_audio_accuracy,
+        container=export_audio_container,
+        codec=export_audio_codec,
+        format=export_audio_format,
+        bitrate=export_audio_bitrate,
+        split_channels=export_audio_split_channels,
+    )
+    if blender_audio_volume != 1.0:                                            #  | If Project Volume is changed, adjust it.
+        move_wav_from = f"{path_to_wav}_newVolume{export_audio_file_extension}"
+        fix_volume = f'"{ffmpeg_path}" -i "{path_to_save_pcm}" ' \
+                     + f'-af "volume={blender_audio_volume}" "{move_wav_from}"'
+        subprocess.call(fix_volume, shell=True)
+        os.remove(path_to_save_pcm)                                            #  | Delete the orginal WAV file
+        shutil.move(move_wav_from, path_to_save_pcm)                           #  | Replace original WAV file with fixVolume version.
+    blender_audio_extract_time_end = time.time()                               #  | End lossless audio timer
+
+    if blender_audio_codec == "AAC":
+        hold_audio_codec = "m4a"
+    elif blender_audio_codec == "VORBIS":
+        hold_audio_codec = "ogg"
+    else:
+        hold_audio_codec = blender_audio_codec.lower()                         # | Used for audio extension of all but aac
+
+    if not user_wants_to_convert_audio:
+        path_to_the_audio = path_to_save_pcm
+    else:
+
+        #----[ CREATE LOSSY AUDIO COMMAND STRING ]
+        wav_to_compressed_audio = f'"{ffmpeg_path}" -i "{path_to_save_pcm}"'
+        if use_libfdk_acc:                                                         #  | If libfdk_acc is available it can be used here.
+            wav_to_compressed_audio += " -c:a libfdk_acc "
         else:
-            user_wants_to_convert_audio = True
+            wav_to_compressed_audio += f" -c:a {blender_audio_codec.lower()} "
 
-        #----[ SET AUDIO FILE EXTENSIONS ]
-        if export_audio_codec == "PCM":
-            export_audio_file_extension = ".wav"
-        else:
-            export_audio_file_extension = "." + export_audio_codec.lower()
+        #----[ SET SUPPORTED AUDIO BITRATE RANGES ]
+        if blender_audio_codec == "AC3":
+            min_audio_bitrate = min_audio_bitrate_ac3
+            max_audio_bitrate = max_audio_bitrate_ac3
+        elif blender_audio_codec == "AAC":
+            min_audio_bitrate = min_audio_bitrate_aac
+            max_audio_bitrate = max_audio_bitrate_aac
+        elif blender_audio_codec == "MP2":
+            min_audio_bitrate = min_audio_bitrate_mp2
+            max_audio_bitrate = max_audio_bitrate_mp2
+        elif blender_audio_codec == "MP3":
+            max_audio_bitrate = max_audio_bitrate_mp3
+            min_audio_bitrate = min_audio_bitrate_mp3
 
-        if my_platform == "Windows":
-            print("\n\n Cancel this Script at any time by pressing [ CTRL + BREAK ] \n")
-        else:
-            print("\n\n Cancel this Script at any time by pressing [ CTRL + C ] \n")
-
-        print(f" Extracting Audio as {export_audio_container}({export_audio_codec})")
-        path_to_save_pcm = path_to_wav + export_audio_file_extension
-
-        blender_audio_extract_time_start = time.time()                             #  | Start PCM audio timer
-        bpy.ops.sound.mixdown(
-            filepath=path_to_save_pcm,
-            relative_path=False,
-            check_existing=False,
-            accuracy=export_audio_accuracy,
-            container=export_audio_container,
-            codec=export_audio_codec,
-            format=export_audio_format,
-            bitrate=export_audio_bitrate,
-            split_channels=export_audio_split_channels,
-        )
-        if blender_audio_volume != 1.0:                                            #  | If Project Volume is changed, adjust it.
-            move_wav_from = f"{path_to_wav}_newVolume{export_audio_file_extension}"
-            fix_volume = f'"{ffmpeg_path}" -i "{path_to_save_pcm}" ' \
-                         + f'-af "volume={blender_audio_volume}" "{move_wav_from}"'
-            subprocess.call(fix_volume, shell=True)
-            os.remove(path_to_save_pcm)                                            #  | Delete the orginal WAV file
-            shutil.move(move_wav_from, path_to_save_pcm)                           #  | Replace original WAV file with fixVolume version.
-        blender_audio_extract_time_end = time.time()                               #  | End lossless audio timer
-
-        if blender_audio_codec == "AAC":
-            hold_audio_codec = "m4a"
-        elif blender_audio_codec == "VORBIS":
-            hold_audio_codec = "ogg"
-        else:
-            hold_audio_codec = blender_audio_codec.lower()                         # | Used for audio extension of all but aac
-
-        if not user_wants_to_convert_audio:
-            path_to_the_audio = path_to_save_pcm
-        else:
-
-            #----[ CREATE LOSSY AUDIO COMMAND STRING ]
-            wav_to_compressed_audio = f'"{ffmpeg_path}"{can_we_overwrite} -i "{path_to_save_pcm}"'
-            if use_libfdk_acc:                                                         #  | If libfdk_acc is available it can be used here.
-                wav_to_compressed_audio += " -c:a libfdk_acc "
+        #----[ IF USING FFMPEG BITRATE, KEEP IN SUPPORTED RANGE ]
+        if use_ffmpeg_audio_bitrates:
+            if custom_audio_bitrate < min_audio_bitrate:
+                blender_audio_bitrate = min_audio_bitrate
+            elif custom_audio_bitrate > max_audio_bitrate:
+                blender_audio_bitrate = max_audio_bitrate
             else:
-                wav_to_compressed_audio += f" -c:a {blender_audio_codec.lower()} "
+                blender_audio_bitrate = custom_audio_bitrate
+        else:
+            #----[ IF USING BLENDER'S BITRATE, KEEP IN SUPPORTED RANGE ]
+            if blender_audio_bitrate < min_audio_bitrate:
+                blender_audio_bitrate = min_audio_bitrate
+            if blender_audio_bitrate > max_audio_bitrate:
+                blender_audio_bitrate = max_audio_bitrate
+        wav_to_compressed_audio += f" -b:a {blender_audio_bitrate}k"
 
-            #----[ SET SUPPORTED AUDIO BITRATE RANGES ]
-            if blender_audio_codec == "AC3":
-                min_audio_bitrate = min_audio_bitrate_ac3
-                max_audio_bitrate = max_audio_bitrate_ac3
-            elif blender_audio_codec == "AAC":
-                min_audio_bitrate = min_audio_bitrate_aac
-                max_audio_bitrate = max_audio_bitrate_aac
-            elif blender_audio_codec == "MP2":
-                min_audio_bitrate = min_audio_bitrate_mp2
-                max_audio_bitrate = max_audio_bitrate_mp2
-            elif blender_audio_codec == "MP3":
-                max_audio_bitrate = max_audio_bitrate_mp3
-                min_audio_bitrate = min_audio_bitrate_mp3
+        path_to_the_audio = path_to_wav + "." # add extension later.
+        if blender_audio_codec == "AAC":                                           #  | Make acception for AAC codec
+            path_to_the_audio += "m4a"                                      #  | Use .m4a extension instead of .aac
+        elif blender_audio_codec == "VORBIS":                                      #  | Vorbis needs to use ogg container
+            path_to_the_audio += "ogg"
+        else:
+            path_to_the_audio += blender_audio_codec.lower()
+        wav_to_compressed_audio += f' "{path_to_the_audio}"'
 
-            #----[ IF USING FFMPEG BITRATE, KEEP IN SUPPORTED RANGE ]
-            if use_ffmpeg_audio_bitrates:
-                if custom_audio_bitrate < min_audio_bitrate:
-                    blender_audio_bitrate = min_audio_bitrate
-                elif custom_audio_bitrate > max_audio_bitrate:
-                    blender_audio_bitrate = max_audio_bitrate
-                else:
-                    blender_audio_bitrate = custom_audio_bitrate
-            else:
-                #----[ IF USING BLENDER'S BITRATE, KEEP IN SUPPORTED RANGE ]
-                if blender_audio_bitrate < min_audio_bitrate:
-                    blender_audio_bitrate = min_audio_bitrate
-                if blender_audio_bitrate > max_audio_bitrate:
-                    blender_audio_bitrate = max_audio_bitrate
-            wav_to_compressed_audio += f" -b:a {blender_audio_bitrate}k"
+        print(f' Converting Audio using {blender_audio_codec} codec using bitrate of {blender_audio_bitrate}k')
 
-            path_to_the_audio = path_to_wav + "." # add extension later.
-            if blender_audio_codec == "AAC":                                           #  | Make acception for AAC codec
-                path_to_the_audio += "m4a"                                      #  | Use .m4a extension instead of .aac
-            elif blender_audio_codec == "VORBIS":                                      #  | Vorbis needs to use ogg container
-                path_to_the_audio += "ogg"
-            else:
-                path_to_the_audio += blender_audio_codec.lower()
-            wav_to_compressed_audio += f' "{path_to_the_audio}"'
+        #----[ CONVERT WAV TO COMPRESSED FORMAT ]
+        audio_conversion_time_start = time.time()                              #  | Start audio conversion timer
+        subprocess.call(wav_to_compressed_audio, shell=True)
+        audio_conversion_time_end = time.time()                                #  | End audio conversion timer
 
-            print(f' Converting Audio using {blender_audio_codec} codec using bitrate of {blender_audio_bitrate}k')
-
-            #----[ CONVERT WAV TO COMPRESSED FORMAT ]
-            audio_conversion_time_start = time.time()                              #  | Start audio conversion timer
-            subprocess.call(wav_to_compressed_audio, shell=True)
-            audio_conversion_time_end = time.time()                                #  | End audio conversion timer
-
-            #----[ MAKE SURE THAT A LOSSY FILE WAS CREATED ]
-            if not os.path.isfile(path_to_the_audio):
-                print(" There was an error compressing your audio. Please change your render settings.")
-                exit()
+        #----[ MAKE SURE THAT A LOSSY FILE WAS CREATED ]
+        if not os.path.isfile(path_to_the_audio):
+            print(" There was an error compressing your audio. Please change your render settings.")
+            exit()
 
 #______________________________________________________________________________
 #
@@ -1107,12 +1138,12 @@ if not blender_image_sequence:
     #----[ CREATE COMMAND STRING FOR VIDEO CONCATENATION ]
     full_command_string += \
         f'"{ffmpeg_path}" -f concat -safe 0 -i "{concat_file}" ' + \
-        f'-c copy "{joined_video_no_audio}{file_extension}"{can_we_overwrite}\n'
+        f'-c copy "{joined_video_no_audio}{file_extension}"\n'
 
     #----[ CREATE A STRING THAT ADDS AUDIO TO VIDEO ]
     if blender_audio_codec != "NONE" and not separate_audio_video:
         full_command_string += \
-            f'"{ffmpeg_path}"{can_we_overwrite} -i "{joined_video_no_audio}{file_extension}"{can_we_overwrite}' \
+            f'"{ffmpeg_path}" -i "{joined_video_no_audio}{file_extension}"' \
             + f' -i "{path_to_the_audio}"' \
             + f' {post_full_audio} "{output_video_file}{file_extension}" {post_finished_video}\n'
 
