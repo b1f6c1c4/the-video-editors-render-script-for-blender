@@ -277,495 +277,481 @@ else: # OTHER OPERATING SYSTEMS WITH ACCESS TO BASH SHELL
 #                              BASIC CONFIGURATION
 #______________________________________________________________________________
 
-#----[ DETECT IF BLENDER AND FFMPEG PATHS ARE CORRECTLY CONFIGURED ]
-my_file = Path(blender_path)
-if not my_file.is_file():
-    subprocess.call(clr_cmd, shell=True)
-    print(80 * "#")
-    print("\n Blender program was not found. Please set the correct path to \
-Blender in the\n render script. (Edit Section starting at line 94 of Script)")
-    print("\n The render script is set to look for Blender at the following\
- location:\n")
-    print(" " + blender_path + "\n")
-    print(80 * "#")
-    exit()
-my_file = Path(path_to_ffmpeg)
-if not my_file.is_file():
-    subprocess.call(clr_cmd, shell=True)
-    print(80 * "#")
-    print("\n FFmpeg program was not found. Please set the correct path to\
- FFmpeg in the\n render script. (Edit Section starting at line 94 of Script)")
-    print("\n The render script is set to look for FFmpeg at the following\
- location:\n")
-    print(" " + path_to_ffmpeg + "\n")
-    print(80 * "#")
-    exit()
+if True:
 
-#----[ FIND THE PATH TO THIS SCRIPT ]
-full_root_filepath = os.path.dirname(bpy.data.filepath)
+    #----[ DETECT IF BLENDER AND FFMPEG PATHS ARE CORRECTLY CONFIGURED ]
+    my_file = Path(blender_path)
+    if not my_file.is_file():
+        subprocess.call(clr_cmd, shell=True)
+        print(80 * "#")
+        print("\n Blender program was not found. Please set the correct path to Blender in the\n render script.")
+        print("\n The render script is set to look for Blender at the following location:\n")
+        print(" " + blender_path + "\n")
+        print(80 * "#")
+        exit()
+    my_file = Path(path_to_ffmpeg)
+    if not my_file.is_file():
+        subprocess.call(clr_cmd, shell=True)
+        print(80 * "#")
+        print("\n FFmpeg program was not found. Please set the correct path to FFmpeg in the\n render script.")
+        print("\n The render script is set to look for FFmpeg at the following location:\n")
+        print(" " + path_to_ffmpeg + "\n")
+        print(80 * "#")
+        exit()
 
-#----[ GIVE TEMP FILE-FOLDERS NAMES ]
-working_dir_temp = os.path.abspath(os.path.join(full_root_filepath, "Script_Working_Folder"))
-img_sequence_dir = os.path.abspath(os.path.join(full_root_filepath, "IMG_Sequence"))
+    #----[ FIND THE PATH TO THIS SCRIPT ]
+    full_root_filepath = os.path.dirname(bpy.data.filepath)
 
-#----[ GIVE TEMP FILES NAMES ]
-wav_filename = "Full_Audio"
-joined_video = "Joined_Video"
-audio_and_video = "Finished_Video"
-concat = "Concat_Video_List.txt"
+    #----[ GIVE TEMP FILE-FOLDERS NAMES ]
+    working_dir_temp = os.path.abspath(os.path.join(full_root_filepath, "Script_Working_Folder"))
+    img_sequence_dir = os.path.abspath(os.path.join(full_root_filepath, "IMG_Sequence"))
 
-#----[ GIVE GIF CONVERSION FILES NAMES ]
-final_gif_name = "final.gif"
-png_pallette = "pallette.png"
+    #----[ GIVE TEMP FILES NAMES ]
+    wav_filename = "Full_Audio"
+    joined_video = "Joined_Video"
+    audio_and_video = "Finished_Video"
+    concat = "Concat_Video_List.txt"
 
-#----[ SET NAME OF .BLEND OVERRIDE FILE ]
-blendfile_override_setting_filename = "OverrideSettings.py"
+    #----[ GIVE GIF CONVERSION FILES NAMES ]
+    final_gif_name = "final.gif"
+    png_pallette = "pallette.png"
 
-#----[ SET SCRIPT DEFAULTS VARIABLES ]
-blender_command = full_command_string = "" # (Default= "")
-path_to_av_source = os.path.join(working_dir_temp, "AV_Source")
-path_to_other_files = os.path.join(working_dir_temp, "Other_Files")            #  | Look at "render." file in this folder to see the "secret sauce."
+    #----[ SET NAME OF .BLEND OVERRIDE FILE ]
+    blendfile_override_setting_filename = "OverrideSettings.py"
 
-#----[ PCM MIXDOWN SETTINGS (LOSSLESS) ]
-export_audio_container = "WAV" # (Default: "WAV")
-export_audio_codec = "PCM" # (Default: "PCM")
-export_audio_bitrate = 384 # kb/s (Default: 384)                               #  | This setting is ignored by PCM (It's set because it's there.)
-export_audio_split_channels = False # (Default: False) [True or False]         #  | Turning this to True may cause loss of some audio
+    #----[ SET SCRIPT DEFAULTS VARIABLES ]
+    blender_command = full_command_string = "" # (Default= "")
+    path_to_av_source = os.path.join(working_dir_temp, "AV_Source")
+    path_to_other_files = os.path.join(working_dir_temp, "Other_Files")            #  | Look at "render." file in this folder to see the "secret sauce."
 
-#----[ DOCUMENTED BITRATE RANGE FOR SUPPORTED AUDIO CODECS ]                   #  | Wikipedia was my source for these bitrate limits
-max_audio_bitrate_ac3 = 640 # kb/s (AC3)                                       #  | If you know of better settings, email me.
-max_audio_bitrate_aac = 529 # kb/s (AAC)
-max_audio_bitrate_mp3 = 320 # kb/s (MP3)
-max_audio_bitrate_mp2 = 384 # kb/s (MP2)
-max_audio_bitrate_opus = 500 # kb/s (OPUS)
-min_audio_bitrate_ac3 = min_audio_bitrate_mp2 = 32 # kb/s (AC3) (MP2)
-min_audio_bitrate_aac = min_audio_bitrate_mp3 = 8 # kb/s (AAC) (MP3)
-min_audio_bitrate_opus = 45 # kb/s (OPUS)
+    #----[ PCM MIXDOWN SETTINGS (LOSSLESS) ]
+    export_audio_container = "WAV" # (Default: "WAV")
+    export_audio_codec = "PCM" # (Default: "PCM")
+    export_audio_bitrate = 384 # kb/s (Default: 384)                               #  | This setting is ignored by PCM (It's set because it's there.)
+    export_audio_split_channels = False # (Default: False) [True or False]         #  | Turning this to True may cause loss of some audio
 
-#----[ FALLBACK AUDIO BITRATES ]
-max_audio_bitrate = 320 # kb/s
-min_audio_bitrate = 32 # kb/s
+    #----[ DOCUMENTED BITRATE RANGE FOR SUPPORTED AUDIO CODECS ]                   #  | Wikipedia was my source for these bitrate limits
+    max_audio_bitrate_ac3 = 640 # kb/s (AC3)                                       #  | If you know of better settings, email me.
+    max_audio_bitrate_aac = 529 # kb/s (AAC)
+    max_audio_bitrate_mp3 = 320 # kb/s (MP3)
+    max_audio_bitrate_mp2 = 384 # kb/s (MP2)
+    max_audio_bitrate_opus = 500 # kb/s (OPUS)
+    min_audio_bitrate_ac3 = min_audio_bitrate_mp2 = 32 # kb/s (AC3) (MP2)
+    min_audio_bitrate_aac = min_audio_bitrate_mp3 = 8 # kb/s (AAC) (MP3)
+    min_audio_bitrate_opus = 45 # kb/s (OPUS)
 
-#----[ SET OVERWRITING SETTINGS ]
-if auto_overwrite_files:
-    can_we_overwrite = " -y"
-else:
-    can_we_overwrite = ""
+    #----[ FALLBACK AUDIO BITRATES ]
+    max_audio_bitrate = 320 # kb/s
+    min_audio_bitrate = 32 # kb/s
+
+    #----[ SET OVERWRITING SETTINGS ]
+    if auto_overwrite_files:
+        can_we_overwrite = " -y"
+    else:
+        can_we_overwrite = ""
 
 #______________________________________________________________________________
 #
 #               GET RENDER PROPERTY SETTINGS FROM THE .BLEND FILE
 #______________________________________________________________________________
 
+if True:
+    # Blender version reported by .blend file
+    blender_ver = str(bpy.data.version[0]) + "" + str(bpy.data.version[1]) + "0"  # edited out bpy.data.version[2] due to changes in blender 2.83
+    blender_ver = int(blender_ver)                                                #  | 2790 int value (2.79.0)
+    # Blender version being used for rendering
+    blender_ver_running = str(bpy.app.version[0]) + "" + str(bpy.app.version[1]) + "0"  # edited out bpy.app.version[2] due to changes in blender 2.83
+    blender_ver_running = int(blender_ver_running)
 
-# Blender version reported by .blend file
-blender_ver = str(bpy.data.version[0]) + "" + str(bpy.data.version[1]) + "0"  # edited out bpy.data.version[2] due to changes in blender 2.83
-blender_ver = int(blender_ver)                                                #  | 2790 int value (2.79.0)
-# Blender version being used for rendering
-blender_ver_running = str(bpy.app.version[0]) + "" + str(bpy.app.version[1]) + "0"  # edited out bpy.app.version[2] due to changes in blender 2.83
-blender_ver_running = int(blender_ver_running)
+    if blender_ver_running != blender_ver:
+        subprocess.call(clr_cmd, shell=True)
+        print(80 * "#")
+        print(f"\n Your .blend file \'encoding section\' is setup for version{str(bpy.data.version)}, but you are\n "
+              f"rendering with {str(bpy.app.version)}. Please open the .blend file in blender{str(bpy.app.version)},"
+              f"\n configure the encoding settings, and save the .blend file. This will make\n sure that blender has "
+              f"set all of the correct variables for your project.\n")
+        print(80 * "#")
+        exit()
 
-if blender_ver_running != blender_ver:
-    subprocess.call(clr_cmd, shell=True)
-    print(80 * "#")
-    print("\n Your .blend file 'encoding section' is setup for version" \
-+ str(bpy.data.version) + ", but you are\n rendering with " + str(bpy.app.version)
-+ ". Please open the .blend file in blender" + str(bpy.app.version)\
- + ",\n configure the encoding settings, and save the .blend file. This will make\n\
- sure that blender has set all of the correct variables for your project.\n")
-    print(80 * "#")
-    exit()
+    # Set Defaults for Variables that are used below
+    number_of_scenes = 0                                                           #  | Set Scene number to 0 so we can count number of VSE scenes.
+    scene_strip_in_vse_is_3d = False                                               #  | Assume there are no 3d Scene Strips in the sequencer
+    sound_strips = 0                                                               #  | Assume we have no sound strips
+    scene_name_present = False                                                     #  | if "Scene" isn't found you will get an Alert.
 
-# Set Defaults for Variables that are used below
-number_of_scenes = 0                                                           #  | Set Scene number to 0 so we can count number of VSE scenes.
-scene_strip_in_vse_is_3d = False                                               #  | Assume there are no 3d Scene Strips in the sequencer
-sound_strips = 0                                                               #  | Assume we have no sound strips
-scene_name_present = False                                                     #  | if "Scene" isn't found you will get an Alert.
+    for scene in bpy.data.scenes:
 
-for scene in bpy.data.scenes:
+        if scene.name == "Scene":                                                  #  | We cycle through all the scenes, but only take settings from scene named "Scene"
 
-    if scene.name == "Scene":                                                  #  | We cycle through all the scenes, but only take settings from scene named "Scene"
+            scene_name_present = True
 
-        scene_name_present = True
+            #Image/Video that work on all versions of blender 2.7+         (eg)
+            blender_x_resolution = scene.render.resolution_x #             (800)
+            blender_y_resolution = scene.render.resolution_y #             (600)
+            blender_res_percent = scene.render.resolution_percentage #     (50)
+            blender_file_format = scene.render.image_settings.file_format #(FFMPEG)
+            blender_vid_format = scene.render.ffmpeg.format #              (MPEG4)
+            blender_video_codec = scene.render.ffmpeg.codec #              (H264)
+            blender_video_bitrate = scene.render.ffmpeg.video_bitrate #    (8000)
+            blender_gop = scene.render.ffmpeg.gopsize #                    (18)
+            blender_video_bitrate = scene.render.ffmpeg.video_bitrate #    (8000)
+            blender_gop = scene.render.ffmpeg.gopsize #                    (18)
+            blender_color_mode = scene.render.image_settings.color_mode#   (RGB)
 
-        #Image/Video that work on all versions of blender 2.7+         (eg)
-        blender_x_resolution = scene.render.resolution_x #             (800)
-        blender_y_resolution = scene.render.resolution_y #             (600)
-        blender_res_percent = scene.render.resolution_percentage #     (50)
-        blender_file_format = scene.render.image_settings.file_format #(FFMPEG)
-        blender_vid_format = scene.render.ffmpeg.format #              (MPEG4)
-        blender_video_codec = scene.render.ffmpeg.codec #              (H264)
-        blender_video_bitrate = scene.render.ffmpeg.video_bitrate #    (8000)
-        blender_gop = scene.render.ffmpeg.gopsize #                    (18)
-        blender_video_bitrate = scene.render.ffmpeg.video_bitrate #    (8000)
-        blender_gop = scene.render.ffmpeg.gopsize #                    (18)
-        blender_color_mode = scene.render.image_settings.color_mode#   (RGB)
-
-        # If 2.78c or lower get these settings
-        blender_constant_rate_factor = scene.render.ffmpeg.constant_rate_factor #    (HIGH)
-        blender_ffmpeg_preset = scene.render.ffmpeg.ffmpeg_preset #                  (FAST)
-        #Check Lossless output
-        if blender_constant_rate_factor == "LOSSLESS":
-            blender_use_lossless_output = True
-        else:
-            blender_use_lossless_output = False
-
-        if blender_constant_rate_factor == "NONE":
-            use_constant_bitrate = True
-        else:
-            use_constant_bitrate = False
-
-        #Scale resolution
-        blender_x_times_res_percent =\
-        int((blender_res_percent * 0.01)*blender_x_resolution) #       (400)   #  | These settings allow us to use the "scale resolution"
-        blender_y_times_res_percent=\
-        int((blender_res_percent * 0.01)*blender_y_resolution) #       (300)   #  | option below the (X,Y) resolution settings.
-
-        #GIF Scale Resolution
-        if render_gif:
-            if custom_gif_scale_x_value == "":
-                gif_scale = blender_x_times_res_percent                        #  | By default we use blenders resolution setting
+            # If 2.78c or lower get these settings
+            blender_constant_rate_factor = scene.render.ffmpeg.constant_rate_factor #    (HIGH)
+            blender_ffmpeg_preset = scene.render.ffmpeg.ffmpeg_preset #                  (FAST)
+            #Check Lossless output
+            if blender_constant_rate_factor == "LOSSLESS":
+                blender_use_lossless_output = True
             else:
-                gif_scale = int(custom_gif_scale_x_value)
+                blender_use_lossless_output = False
 
-        #Audio                                                        (eg)
-        blender_audio_codec = scene.render.ffmpeg.audio_codec #       (AAC)
-        blender_audio_bitrate = scene.render.ffmpeg.audio_bitrate #   (192)
-        blender_audio_channels = scene.render.ffmpeg.audio_channels # (False)
-        blender_audio_volume = scene.render.ffmpeg.audio_volume #     (1.0)
+            if blender_constant_rate_factor == "NONE":
+                use_constant_bitrate = True
+            else:
+                use_constant_bitrate = False
 
-        if force_audio_mixrate in ("44100","48000","96000","192000"):
-            blender_audio_mixrate = int(force_audio_mixrate)
-            #Set the audio sample rate to script's user setting
-            scene.render.ffmpeg.audio_mixrate = int(force_audio_mixrate)       #  | We set the mixrate directly because it's not included in the export function.
-        elif force_audio_mixrate != "":
-            subprocess.call(clr_cmd, shell=True)
-            print(80 * "#" + "\n\n force_audio_mixrate is set wrong in this \
-script.\n\n" + 80 * "#")
-            exit()
-        else:
-            blender_audio_mixrate = scene.render.ffmpeg.audio_mixrate
+            #Scale resolution
+            blender_x_times_res_percent =\
+            int((blender_res_percent * 0.01)*blender_x_resolution) #       (400)   #  | These settings allow us to use the "scale resolution"
+            blender_y_times_res_percent=\
+            int((blender_res_percent * 0.01)*blender_y_resolution) #       (300)   #  | option below the (X,Y) resolution settings.
 
-       #Framerate                                                      (eg)
-        blender_fps = scene.render.fps #                               (24)
-        blender_fps_base = scene.render.fps_base #                     (1.001)
-        the_framerate_float = round(blender_fps / blender_fps_base,2) #(23.98)
+            #GIF Scale Resolution
+            if render_gif:
+                if custom_gif_scale_x_value == "":
+                    gif_scale = blender_x_times_res_percent                        #  | By default we use blenders resolution setting
+                else:
+                    gif_scale = int(custom_gif_scale_x_value)
 
-        #GIF Framerate
-        if render_gif:
-            if gif_framerate == "":
-                gif_framerate = the_framerate_float
+            #Audio                                                        (eg)
+            blender_audio_codec = scene.render.ffmpeg.audio_codec #       (AAC)
+            blender_audio_bitrate = scene.render.ffmpeg.audio_bitrate #   (192)
+            blender_audio_channels = scene.render.ffmpeg.audio_channels # (False)
+            blender_audio_volume = scene.render.ffmpeg.audio_volume #     (1.0)
 
-        #Start and End Frames                                          (eg)
-        start_frame_is = scene.frame_start #                           (1)
-        end_frame_is = scene.frame_end #                               (1000)
-        total_number_of_frames = end_frame_is - start_frame_is #       (999)
-        total_number_of_frames += 1 #                                  (1000)  #  | We need to add 1 because the first frame is included
+            if force_audio_mixrate in ("44100","48000","96000","192000"):
+                blender_audio_mixrate = int(force_audio_mixrate)
+                #Set the audio sample rate to script's user setting
+                scene.render.ffmpeg.audio_mixrate = int(force_audio_mixrate)       #  | We set the mixrate directly because it's not included in the export function.
+            elif force_audio_mixrate != "":
+                subprocess.call(clr_cmd, shell=True)
+                print(80 * "#" + "\n\n force_audio_mixrate is set wrong in this script.\n\n" + 80 * "#")
+                exit()
+            else:
+                blender_audio_mixrate = scene.render.ffmpeg.audio_mixrate
 
-        #Render Engine                                                 (eg)
-        blender_render_engine = scene.render.engine #                  (CYCLES)
+           #Framerate                                                      (eg)
+            blender_fps = scene.render.fps #                               (24)
+            blender_fps_base = scene.render.fps_base #                     (1.001)
+            the_framerate_float = round(blender_fps / blender_fps_base,2) #(23.98)
 
-        #Autosplit                                                     (eg)
-        blender_use_autosplit = scene.render.ffmpeg.use_autosplit #    (True)
+            #GIF Framerate
+            if render_gif:
+                if gif_framerate == "":
+                    gif_framerate = the_framerate_float
 
-    number_of_scenes += 1                                                      #  | How many scenes are we dealing with...
+            #Start and End Frames                                          (eg)
+            start_frame_is = scene.frame_start #                           (1)
+            end_frame_is = scene.frame_end #                               (1000)
+            total_number_of_frames = end_frame_is - start_frame_is #       (999)
+            total_number_of_frames += 1 #                                  (1000)  #  | We need to add 1 because the first frame is included
 
-    try:
-        for seq in scene.sequence_editor.sequences_all:                        #  | Generally, we don't use Scene Strips, but if the Scene Strips
-            if seq.bl_rna.name == "Scene Sequence" and scene.name == "Scene":  #  | only use a Sequencer, it will work. Only 3D breaks.
-                if not seq.use_sequence:
-                    scene_strip_in_vse_is_3d = True
-    except AttributeError:                                                     #  | When VSE is empty, there is no Attribute, so we catch the error.
-        print("VSE is Empty")
+            #Render Engine                                                 (eg)
+            blender_render_engine = scene.render.engine #                  (CYCLES)
 
-    try:
-        for seq in scene.sequence_editor.sequences_all:
-            if seq.bl_rna.name == "Sound Sequence":
-                sound_strips += 1                                              #  | Count the number of total Sound Strips in all Scenes.
-                print("Sound Found")
-    except AttributeError:                                                     #  | When VSE is empty, there is no Attribute , so we catch the error.
-        print("VSE EMPTY")
+            #Autosplit                                                     (eg)
+            blender_use_autosplit = scene.render.ffmpeg.use_autosplit #    (True)
 
-#----[ CHECK FOR SCENE NAMED "Scene" ]
-if not scene_name_present:                                                     #  | We must have a scene named "Scene" to get settings from.
-    subprocess.call(clr_cmd, shell=True)
-    print(80 * "#")
-    print("\n\n ! NO SCENE NAMED \"Scene\" ALERT !\n\n Please name your \
-primary scene, \"Scene\" . This is required so that blender\n knows \
-which scene it should take settings from. \n\n")
-    print(80 * "#")
-    exit()
+        number_of_scenes += 1                                                      #  | How many scenes are we dealing with...
 
-if sound_strips == 0:                                                          #  | Turn off Audio if there are 0 Sound Strips, otherwise, use 1st detected
-    blender_audio_codec = "NONE"                                               #  | Audio Codec
+        try:
+            for seq in scene.sequence_editor.sequences_all:                        #  | Generally, we don't use Scene Strips, but if the Scene Strips
+                if seq.bl_rna.name == "Scene Sequence" and scene.name == "Scene":  #  | only use a Sequencer, it will work. Only 3D breaks.
+                    if not seq.use_sequence:
+                        scene_strip_in_vse_is_3d = True
+        except AttributeError:                                                     #  | When VSE is empty, there is no Attribute, so we catch the error.
+            print("VSE is Empty")
 
-if blender_audio_codec != "NONE":                                              #  | If we're rendering audio, we can collect the Sample Format setting from User Pref.
+        try:
+            for seq in scene.sequence_editor.sequences_all:
+                if seq.bl_rna.name == "Sound Sequence":
+                    sound_strips += 1                                              #  | Count the number of total Sound Strips in all Scenes.
+                    print("Sound Found")
+        except AttributeError:                                                     #  | When VSE is empty, there is no Attribute , so we catch the error.
+            print("VSE EMPTY")
 
-    try_sample_format = bpy.context.preferences.system.audio_sample_format
+    #----[ CHECK FOR SCENE NAMED "Scene" ]
+    if not scene_name_present:                                                     #  | We must have a scene named "Scene" to get settings from.
+        subprocess.call(clr_cmd, shell=True)
+        print(80 * "#")
+        print('\n\n ! NO SCENE NAMED "Scene" ALERT !\n\n Please name your primary scene, "Scene" . This is required '
+              'so that blender\n knows which scene it should take settings from. \n\n')
+        print(80 * "#")
+        exit()
 
-    if try_sample_format in ("U8","S16","S24","S32"):
-        if export_audio_format == "":
-            export_audio_format = try_sample_format
-    elif try_sample_format == "FLOAT":
-        if export_audio_format =="":
-            export_audio_format = "F32"
-    elif try_sample_format == "DOUBLE":
-        if export_audio_format =="":
-            export_audio_format = "F64"
+    if sound_strips == 0:                                                          #  | Turn off Audio if there are 0 Sound Strips, otherwise, use 1st detected
+        blender_audio_codec = "NONE"                                               #  | Audio Codec
 
-#----[ Switch Color Management settings to Match 2.79 defaults]
+    if blender_audio_codec != "NONE":                                              #  | If we're rendering audio, we can collect the Sample Format setting from User Pref.
 
-if color_management_defauts_render_speed_up:
+        try_sample_format = bpy.context.preferences.system.audio_sample_format
 
-    if bpy.context.scene.view_settings.view_transform != 'Standard':
-        blendfile_override_setting += "    bpy.context.scene.view_settings.view_transform = 'Standard'\n"
+        if try_sample_format in ("U8","S16","S24","S32"):
+            if export_audio_format == "":
+                export_audio_format = try_sample_format
+        elif try_sample_format == "FLOAT":
+            if export_audio_format =="":
+                export_audio_format = "F32"
+        elif try_sample_format == "DOUBLE":
+            if export_audio_format =="":
+                export_audio_format = "F64"
 
-    if bpy.context.scene.view_settings.look != 'None':
-        blendfile_override_setting += "    bpy.context.scene.view_settings.look = 'None'\n"
+    #----[ Switch Color Management settings to Match 2.79 defaults]
+
+    if color_management_defauts_render_speed_up:
+
+        if bpy.context.scene.view_settings.view_transform != 'Standard':
+            blendfile_override_setting += "    bpy.context.scene.view_settings.view_transform = 'Standard'\n"
+
+        if bpy.context.scene.view_settings.look != 'None':
+            blendfile_override_setting += "    bpy.context.scene.view_settings.look = 'None'\n"
 
 #______________________________________________________________________________
 #
 #                      CHECK FOR MINIMUM CPU REQUIREMENTS
 #______________________________________________________________________________
 
-#----[ DETECT NUMBER OF LOGICAL CPU CORES AVAILABLE ]                          #  | cpu_count = max number of possible render instances.
-logical_cores_available = multiprocessing.cpu_count()                          #  | Having more instances than count number has NO render time advantage.
+if True:
 
-#----[ SET NUMBER OF LOGICAL CPU CORES USED WITH BLENDER INSTANCES ]
-cores_enabled = logical_cores_available - reserved_cpu_logical_cores           #  | cores_enabled = actual number of video segments created
+    #----[ DETECT NUMBER OF LOGICAL CPU CORES AVAILABLE ]                          #  | cpu_count = max number of possible render instances.
+    logical_cores_available = multiprocessing.cpu_count()                          #  | Having more instances than count number has NO render time advantage.
 
-if not force_one_instance_render:                                              #  | When forceOneInstanceRender = True, we render with only 1 blender instance.
+    #----[ SET NUMBER OF LOGICAL CPU CORES USED WITH BLENDER INSTANCES ]
+    cores_enabled = logical_cores_available - reserved_cpu_logical_cores           #  | cores_enabled = actual number of video segments created
 
-    #----[ DOES CPU HAVE MULTIPLE LOGICAL CORES ]                              #  | blender instance, with 1 core, are able to render anything you
-    if logical_cores_available == 1:                                           #  | want, without UI - Even 3D scenes. The benefit is that you will
-        subprocess.call(clr_cmd, shell=True)                                   #  | have access to external FFmpeg features. (Audio and GIF features)
-        print(80 * "#")
-        print("\n\n Your CPU logical core number is less than 2. This script \
-is\n designed to be used with CPUs that have multiple logical cores.\n To run \
-script with single core, set force_one_instance_render = True \n Script has \
-exited.\n\n")
-        print(80 * "#")
-        exit()
+    if not force_one_instance_render:                                              #  | When forceOneInstanceRender = True, we render with only 1 blender instance.
 
-    #----[ MINIMUM CPU LOGICAL CORE REQUIREMENT TO RUN SCRIPT]                 #  | All CPU's with more than 1 core get this setting by default
-    min_cores_met = 2
-
-    #----[ DOES CPU HAVE MORE THAN 1 LOGICAL CORE IT CAN USE? ]
-    if cores_enabled < 2 and logical_cores_available > 1 and not bypass_low_cpu_warnings:
-        subprocess.call(clr_cmd, shell=True)                                   #  | Lowest CPU logical core count for this script must be 2
-        try:
-            min_cores_met = int(input(80 * "#" + "\n\n \
-Your computer is using less than 2 CPU cores.\n\n There will only be a, render\
- time, performance increase if you use ALL\n of your CPU Cores. This should \
-work, but it may cause interaction with\n your computer to slow down.\n \
-To run script with single core, set force_one_instance_render = True \n\n"\
-+ 80 * "#" + "\n\n [Enter 2] to use 2 CPU cores, or simply press \
-ENTER(RETURN) to exit: "))
-        except ValueError:
-            subprocess.call(clr_cmd, shell=True)
+        #----[ DOES CPU HAVE MULTIPLE LOGICAL CORES ]                              #  | blender instance, with 1 core, are able to render anything you
+        if logical_cores_available == 1:                                           #  | want, without UI - Even 3D scenes. The benefit is that you will
+            subprocess.call(clr_cmd, shell=True)                                   #  | have access to external FFmpeg features. (Audio and GIF features)
             print(80 * "#")
-            print("\n\n Script exited because you need at least 2 cores for \
-this script\n To run script with single core, set force_one_instance_render \
-= True \n\n")
+            print("\n\n Your CPU logical core number is less than 2. This script is\n designed to be used with CPUs "
+                  "that have multiple logical cores.\n To run script with single core, set force_one_instance_render "
+                  "= True \n Script has exited.\n\n")
             print(80 * "#")
             exit()
 
-    #----[ ONLY CONTINUE IF MINIMUM NUMBER OF LOGICAL CORES IS MET ]
-    if min_cores_met != 2:
-        subprocess.call(clr_cmd, shell=True)
-        print(80 * "#")
-        print("\n\n Script exited because you need at least 2 cores for this \
-script\n\n")
-        print(80 * "#")
-        exit()
+        #----[ MINIMUM CPU LOGICAL CORE REQUIREMENT TO RUN SCRIPT]                 #  | All CPU's with more than 1 core get this setting by default
+        min_cores_met = 2
 
-    if cores_enabled < 2 and logical_cores_available > 1:
-        cores_enabled = 2                                                      #  | We set CPU logical cores to 2.
+        #----[ DOES CPU HAVE MORE THAN 1 LOGICAL CORE IT CAN USE? ]
+        if cores_enabled < 2 and logical_cores_available > 1 and not bypass_low_cpu_warnings:
+            subprocess.call(clr_cmd, shell=True)                                   #  | Lowest CPU logical core count for this script must be 2
+            try:
+                min_cores_met = int(input(80 * "#" \
+                                          + "\n\n Your computer is using less than 2 CPU cores.\n\n There will only "
+                                            "be a, render time, performance increase if you use ALL\n of your CPU "
+                                            "Cores. This should work, but it may cause interaction with\n your "
+                                            "computer to slow down.\n To run script with single core, "
+                                            "set force_one_instance_render = True \n\n" \
+                                          + 80 * "#" + "\n\n [Enter 2] to use 2 CPU cores, or simply press ENTER(RETURN) to exit: "))
+            except ValueError:
+                subprocess.call(clr_cmd, shell=True)
+                print(80 * "#")
+                print("\n\n Script exited because you need at least 2 cores for this script\n To run script with "
+                      "single core, set force_one_instance_render = True \n\n")
+                print(80 * "#")
+                exit()
 
-else:                                                                          #  | This "else:" bypasses CPU LIMIT, allowing us to use
-    cores_enabled = 1                                                          #  | external FFmpeg with 1 core with any .blend project.
-    permit_scene_strips = True                                                 #  | 3D Scene Strips work as expected with 1 instance
+        #----[ ONLY CONTINUE IF MINIMUM NUMBER OF LOGICAL CORES IS MET ]
+        if min_cores_met != 2:
+            subprocess.call(clr_cmd, shell=True)
+            print(80 * "#")
+            print("\n\n Script exited because you need at least 2 cores for this script\n\n")
+            print(80 * "#")
+            exit()
+
+        if cores_enabled < 2 and logical_cores_available > 1:
+            cores_enabled = 2                                                      #  | We set CPU logical cores to 2.
+
+    else:                                                                          #  | This "else:" bypasses CPU LIMIT, allowing us to use
+        cores_enabled = 1                                                          #  | external FFmpeg with 1 core with any .blend project.
+        permit_scene_strips = True                                                 #  | 3D Scene Strips work as expected with 1 instance
 
 #______________________________________________________________________________
 #
 #                           CHECK FOR IMAGE SEQUENCE
 #______________________________________________________________________________
 
-#----{ DETECT IF USER SELECTED AN IMAGE FORMAT ]
-if blender_file_format in ("BMP","IRIS","PNG","JPEG","JPEG2000","TARGA",\
-    "TARGA_RAW","CINEON","DPX","OPEN_EXR_MULTILAYER","OPEN_EXR","HDR","TIFF"): #  | This renders an Image Sequence and Audio file
-    blender_image_sequence = True                                              #  | to a folder instead of muxing an audio/video file
-    #----[ IF IMAGES SEQUENCE IS SET, DON'T ALLOW GIF RENDERING ]              #  | With this script, GIF's can only be produced from movie formats.
-    if render_gif:
-        subprocess.call(clr_cmd, shell=True)
-        print(80 *"#")
-        print("\n\n You have configured this script to render an animated gif \
-and selected an\n Image Sequence format of " + blender_file_format + ". These \
-options are mutually exclusive.\n Either Change to a movie format to render \
-an animated gif, or set\n render_gif = False. \n\n")
-        print(80 * "#")
-        exit()
-else:
-    blender_image_sequence = False
+if True:
+    #----{ DETECT IF USER SELECTED AN IMAGE FORMAT ]
+    if blender_file_format in ("BMP","IRIS","PNG","JPEG","JPEG2000","TARGA",\
+        "TARGA_RAW","CINEON","DPX","OPEN_EXR_MULTILAYER","OPEN_EXR","HDR","TIFF"): #  | This renders an Image Sequence and Audio file
+        blender_image_sequence = True                                              #  | to a folder instead of muxing an audio/video file
+        #----[ IF IMAGES SEQUENCE IS SET, DON'T ALLOW GIF RENDERING ]              #  | With this script, GIF's can only be produced from movie formats.
+        if render_gif:
+            subprocess.call(clr_cmd, shell=True)
+            print(80 *"#")
+            print(f"\n\n You have configured this script to render an animated gif and selected an\n Image Sequence "
+                  f"format of {blender_file_format}. These options are mutually exclusive.\n Either Change to a movie "
+                  f"format to render an animated gif, or set\n render_gif = False. \n\n")
+            print(80 * "#")
+            exit()
+    else:
+        blender_image_sequence = False
 
 #______________________________________________________________________________
 #
 #                                   WARNINGS
 #______________________________________________________________________________
 
-#----[ MAKE SURE WE HAVE AT LEAST 1 FRAMES PER RENDER INSTANCE ]
-if total_number_of_frames < cores_enabled:
-    subprocess.call(clr_cmd, shell=True)
-    print(80 * "#")
-    print(f"\n\n ! NOT ENOUGH FRAMES ALERT !\n\n You must render at least [ {str(cores_enabled)} ] frames\n\n")
-    print(80 * "#")
-    exit()
-
-#----[ CHECK FOR PATH THAT USE ' IN THEM ]
-if "'" in full_root_filepath:
-    subprocess.call(clr_cmd, shell=True)
-    print(80 * "#")
-    print("\n\n ! APOSTROPHE ALERT !\n\n Your .blend filepath has an \
-APOSTROPHE in it. Please remove the APOSTROPHE\n from your path name \
-and never use an APOSTROPHE in a file or folder\n name ever again. \
-While we are at it, you really shouldn't ever use\n SPACES in a file \
-or folder name either, but I will allow it. ;)\n\n \
-Underscore_is_your_best_friend. \n\n")
-    print(80 * "#")
-    exit()
-
-#----[ Check if scaled resolution is divisible by 2 ]
-if blender_x_times_res_percent % 2 != 0 or blender_y_times_res_percent % 2 != 0:
-    subprocess.call(clr_cmd, shell=True)
-    print(80 * "#")
-    print("\n\n Your resolution isn\'t Divisible by 2. Blender can only render \n" \
-          + "X & Y valuse\n that are divisible by 2 with no remainder. " \
-          + f"Your resolution is {blender_x_times_res_percent} x {blender_y_times_res_percent} \n\n")
-    print(80 * "#")
-    exit()
-
-#----[ ARE SCENE STRIPS ALLOWED IN THE VSE ]
-if not permit_scene_strips:                                                    #  | Multi Instance rendering requires dividing the project frame range. When
-                                                                               #  | keyframes have been inserted into viewport objects, and you render out a
-    if scene_strip_in_vse_is_3d:                                               #  | divided frame range, keyframes break. Therefore, we disable scene strips.
+if True:
+    #----[ MAKE SURE WE HAVE AT LEAST 1 FRAMES PER RENDER INSTANCE ]
+    if total_number_of_frames < cores_enabled:
         subprocess.call(clr_cmd, shell=True)
         print(80 * "#")
-        print("\n\n Your VSE contains 'Scene Strips.' If your Scene Strip \
-simply contains another\n Sequencer SCENE, you will need to Checkmark 'USE \
-Sequence' in the Scene Strip \n properties. Otherwise, You have chosen not to \
-permit 3D Scenes with\n the following script setting:\n\n permit_scene_strips \
-= False \n\n You can change that setting to True, or remove the Scene Strip \
-from the VSE.\n\n Note:\n Keyframed objects in the viewport can have glitchy \
-results - this safety is\n in place to prevent wasting your render time. The \
-one scenario where you\n would want to allow 3D Scene Strips to Render is \
-when your Viewport Scene\n objects are static (no keyframes). Keyframes \
-attached to viewport objects\n lose sync when rendering with this script. \
-\n\n")
+        print(f"\n\n ! NOT ENOUGH FRAMES ALERT !\n\n You must render at least [ {str(cores_enabled)} ] frames\n\n")
         print(80 * "#")
         exit()
 
-#----[ CHECK IF LOSSLESS VIDEO CHECKBOX IS MARKED WHEN WE DON'T WANT IT ]
-if blender_use_lossless_output and blender_video_codec != 'H264':              #  | Blender leaves the lossless output checkbox set even after switching codecs.
-    subprocess.call(clr_cmd, shell=True)
-    print(80 * "#")
-    print("\n\n Please open your .blend file, go to the encoding \
-section, switch to the 'H264'\n codec, and uncheck the 'Lossless Output' \
-checkbox. Then set your codec of\n choice. This will prevent the script from \
-accidentally using 'Lossless Output'\n when you want to use a bitrate setting.\
-\n\n")
-    print(80 * "#")
-    exit()
-
-#----[ CHECK LOSSLESS OUTPUT OPTION AGAINST CONTAINER ]                        #  | When rendering a lossless video codec, AVI is the most compatible Container.
-if blender_use_lossless_output and not blender_image_sequence:
-    if blender_vid_format != "AVI" and blender_vid_format != "H264":
+    #----[ CHECK FOR PATH THAT USE ' IN THEM ]
+    if "'" in full_root_filepath:
         subprocess.call(clr_cmd, shell=True)
         print(80 * "#")
-        print(f"\n\n You selected a {blender_vid_format} container to \
-hold lossless video. Please reopen the blend\n file and change to an 'AVI' \
-container. This warning also happens if you left\n your 'lossless output' \
-checkbox marked. Please open your .blend file, go to\n the encoding \
-section, switch to the 'H264' codec, and uncheck the\n 'Lossless Output' \
-checkbox. Then set your codec of choice. This will prevent\n the script from \
-accidentally using 'Lossless Output' when you want to use a\n bitrate setting.\
-\n\n")
+        print("\n\n ! APOSTROPHE ALERT !\n\n Your .blend filepath has an APOSTROPHE in it. Please remove the "
+              "APOSTROPHE\n from your path name and never use an APOSTROPHE in a file or folder\n name ever again. "
+              "While we are at it, you really shouldn't ever use\n SPACES in a file or folder name either, "
+              "but I will allow it. ;)\n\n Underscore_is_your_best_friend. \n\n")
         print(80 * "#")
         exit()
 
-if not bypass_huffyuv_and_raw_avi_warnings:
+    #----[ Check if scaled resolution is divisible by 2 ]
+    if blender_x_times_res_percent % 2 != 0 or blender_y_times_res_percent % 2 != 0:
+        subprocess.call(clr_cmd, shell=True)
+        print(80 * "#")
+        print("\n\n Your resolution isn\'t Divisible by 2. Blender can only render \n" \
+              + "X & Y valuse\n that are divisible by 2 with no remainder. " \
+              + f"Your resolution is {blender_x_times_res_percent} x {blender_y_times_res_percent} \n\n")
+        print(80 * "#")
+        exit()
 
-    should_we_continue = 0 # default to continue
-
-    #----[ DETECT FORMATS THAT HAVE LONG FFMPEG STREAM MAPPING TIMES ]         #  | Stream Mapping takes so long that script only renders slightly faster.
-    if blender_file_format == "AVI_RAW":
-        try:
-            subprocess.call(clr_cmd, shell=True)
-            should_we_continue = int(input(80 * "#" + "\n\n "\
-            + blender_file_format + " will only render around 10% faster than \
-the stardard Blender Interface. This is due to a long stream mapping time. \
-Use AVI(H264) [Lossless] codec\n instead by opening blender and saving the \
-new setting.\n\n ( Hide Future Warnings by setting \
-bypass_huffyuv_and_raw_avi_warnings = True )\n\n" + 80 * "#" + "\n\n [1] to \
-CONTINUE ANYWAY or Press [ENTER/RETURN] to Quit: "))
-        except ValueError:
-            subprocess.call(clr_cmd, shell=True)
-            print("Exiting Script...")
-            exit()
-        if should_we_continue != 1:
-            subprocess.call(clr_cmd, shell=True)
-            print("Exiting Script...")
-            exit()
-
-    #----[ DETECT CODECS THAT HAVE LONG FFMPEG STREAM MAPPING TIMES ]          #  | Stream Mapping takes so long that the render time is about the same.
-    if blender_video_codec == "HUFFYUV" and should_we_continue != 1:           #  | Use AVI(H264)[Lossless] instead
-        try:
-            subprocess.call(clr_cmd, shell=True)
-            should_we_continue = int(input(80 * "#" + "\n\n "\
-            + blender_video_codec + " will render at about the same speed as \
-the stardard Blender Interface.\n This is due to a long stream mapping time. \
-Use AVI(H264) [Lossless] codec\n instead by opening blender and saving the new\
- setting.\n\n ( Hide Future Warnings by setting \
-bypass_huffyuv_and_raw_avi_warnings = True ) \n\n" + 80 * "#" +"\n\n Press \
-[1] to CONTINUE ANYWAY or Press [ENTER/RETURN] to Quit: "))
-        except ValueError:
-            subprocess.call(clr_cmd, shell=True)
-            print("Exiting Script...")
-            exit()
-        if should_we_continue != 1:
-            subprocess.call(clr_cmd, shell=True)
-            print("Exiting Script...")
-            exit()
-
-    #----[ DETECT CODECS THAT DON'T SUPPORT CONSTANT RATE FACTOR ]
-    if blender_video_codec != "H264" and blender_video_codec != "MPEG4" and blender_video_codec != "WEBM":
-        if blender_constant_rate_factor != "NONE":
+    #----[ ARE SCENE STRIPS ALLOWED IN THE VSE ]
+    if not permit_scene_strips:                                                    #  | Multi Instance rendering requires dividing the project frame range. When
+                                                                                   #  | keyframes have been inserted into viewport objects, and you render out a
+        if scene_strip_in_vse_is_3d:                                               #  | divided frame range, keyframes break. Therefore, we disable scene strips.
             subprocess.call(clr_cmd, shell=True)
             print(80 * "#")
-            print("\n Please reopen your .blend file, temporarily switch to\
-H264 Codec. Select 'None'\n from 'Output Quality', then reselect the non-H264 \
-codec that you want to use.\n You will need to set the Constant Video Bitrate \
-settings as well.\n Save and rerun the script. \n (Only H264 supports the \
-Constant Quality Settings; so you need to force \n Constant Bitrate instead.)\n")
+            print("\n\n Your VSE contains 'Scene Strips.' If your Scene Strip simply contains another\n Sequencer "
+                  "SCENE, you will need to Checkmark 'USE Sequence' in the Scene Strip \n properties. Otherwise, "
+                  "You have chosen not to permit 3D Scenes with\n the following script setting:\n\n "
+                  "permit_scene_strips = False \n\n You can change that setting to True, or remove the Scene Strip "
+                  "from the VSE.\n\n Note:\n Keyframed objects in the viewport can have glitchy results - this safety "
+                  "is\n in place to prevent wasting your render time. The one scenario where you\n would want to "
+                  "allow 3D Scene Strips to Render is when your Viewport Scene\n objects are static (no keyframes). "
+                  "Keyframes attached to viewport objects\n lose sync when rendering with this script. \n\n")
             print(80 * "#")
             exit()
 
-#----[ DETECT IF FRAMESEVER IS SET ]
-if blender_file_format == "FRAMESERVER":
-    subprocess.call(clr_cmd, shell=True)
-    print(80 * "#")
-    print(f"\n Please reopen your .blend file and SAVE with a different \
-Movie Format option.\n You selected: {blender_file_format}. It isn't \
-supported with this script.\n\n")
-    print(80 * "#")
-    exit()
+    #----[ CHECK IF LOSSLESS VIDEO CHECKBOX IS MARKED WHEN WE DON'T WANT IT ]
+    if blender_use_lossless_output and blender_video_codec != 'H264':              #  | Blender leaves the lossless output checkbox set even after switching codecs.
+        subprocess.call(clr_cmd, shell=True)
+        print(80 * "#")
+        print("\n\n Please open your .blend file, go to the encoding section, switch to the 'H264'\n codec, "
+              "and uncheck the 'Lossless Output' checkbox. Then set your codec of\n choice. This will prevent the "
+              "script from accidentally using 'Lossless Output'\n when you want to use a bitrate setting.\n\n")
+        print(80 * "#")
+        exit()
 
-if blender_use_autosplit:
-    subprocess.call(clr_cmd, shell=True)
-    print(80 * "#")
-    print("\n Please reopen your .blend file and UNCHECK the 'AUTOSPLIT \
-OUTPUT' option \n that is located in the encoding section.\n\n")
-    print(80 * "#")
-    exit()
+    #----[ CHECK LOSSLESS OUTPUT OPTION AGAINST CONTAINER ]                        #  | When rendering a lossless video codec, AVI is the most compatible Container.
+    if blender_use_lossless_output and not blender_image_sequence:
+        if blender_vid_format != "AVI" and blender_vid_format != "H264":
+            subprocess.call(clr_cmd, shell=True)
+            print(80 * "#")
+            print(f"\n\n You selected a {blender_vid_format} container to hold lossless video. Please reopen the "
+                  f"blend\n file and change to an 'AVI' container. This warning also happens if you left\n your "
+                  f"'lossless output' checkbox marked. Please open your .blend file, go to\n the encoding section, "
+                  f"switch to the 'H264' codec, and uncheck the\n 'Lossless Output' checkbox. Then set your codec of "
+                  f"choice. This will prevent\n the script from accidentally using 'Lossless Output' when you want to "
+                  f"use a\n bitrate setting.\n\n")
+            print(80 * "#")
+            exit()
+
+    if not bypass_huffyuv_and_raw_avi_warnings:
+
+        should_we_continue = 0 # default to continue
+
+        #----[ DETECT FORMATS THAT HAVE LONG FFMPEG STREAM MAPPING TIMES ]         #  | Stream Mapping takes so long that script only renders slightly faster.
+        if blender_file_format == "AVI_RAW":
+            try:
+                subprocess.call(clr_cmd, shell=True)
+                should_we_continue = int(input(80 * "#"
+                                               + f"\n\n {blender_file_format} will only render around 10% faster than "
+                                                 f"the standard Blender Interface. This is due to a long stream "
+                                                 f"mapping time. Use AVI(H264) [Lossless] codec\n instead by opening "
+                                                 f"blender and saving the new setting.\n\n ( Hide Future Warnings by "
+                                                 f"setting bypass_huffyuv_and_raw_avi_warnings = True )\n\n"
+                                               + 80 * "#"
+                                               + "\n\n [1] to CONTINUE ANYWAY or Press [ENTER/RETURN] to Quit: "))
+            except ValueError:
+                subprocess.call(clr_cmd, shell=True)
+                print("Exiting Script...")
+                exit()
+            if should_we_continue != 1:
+                subprocess.call(clr_cmd, shell=True)
+                print("Exiting Script...")
+                exit()
+
+        #----[ DETECT CODECS THAT HAVE LONG FFMPEG STREAM MAPPING TIMES ]          #  | Stream Mapping takes so long that the render time is about the same.
+        if blender_video_codec == "HUFFYUV" and should_we_continue != 1:           #  | Use AVI(H264)[Lossless] instead
+            try:
+                subprocess.call(clr_cmd, shell=True)
+                should_we_continue = int(input(80 * "#"
+                                               + f"\n\n {blender_video_codec} will render at about the same speed as "
+                                                 f"the stardard Blender Interface.\n This is due to a long stream "
+                                                 f"mapping time. Use AVI(H264) [Lossless] codec\n instead by opening "
+                                                 f"blender and saving the newsetting.\n\n ( Hide Future Warnings by "
+                                                 f"setting bypass_huffyuv_and_raw_avi_warnings = True ) \n\n"
+                                               + 80 * "#"
+                                               + "\n\n Press [1] to CONTINUE ANYWAY or Press [ENTER/RETURN] to Quit: "))
+            except ValueError:
+                subprocess.call(clr_cmd, shell=True)
+                print("Exiting Script...")
+                exit()
+            if should_we_continue != 1:
+                subprocess.call(clr_cmd, shell=True)
+                print("Exiting Script...")
+                exit()
+
+        #----[ DETECT CODECS THAT DON'T SUPPORT CONSTANT RATE FACTOR ]
+        if blender_video_codec != "H264" and blender_video_codec != "MPEG4" and blender_video_codec != "WEBM":
+            if blender_constant_rate_factor != "NONE":
+                subprocess.call(clr_cmd, shell=True)
+                print(80 * "#")
+                print("\n Please reopen your .blend file, temporarily switch to H264 Codec. Select 'None'\n from "
+                      "'Output Quality', then reselect the non-H264 codec that you want to use.\n You will need to "
+                      "set the Constant Video Bitrate settings as well.\n Save and rerun the script. \n (Only H264 "
+                      "supports the Constant Quality Settings; so you need to force \n Constant Bitrate instead.)\n")
+                print(80 * "#")
+                exit()
+
+    #----[ DETECT IF FRAMESEVER IS SET ]
+    if blender_file_format == "FRAMESERVER":
+        subprocess.call(clr_cmd, shell=True)
+        print(80 * "#")
+        print(f"\n Please reopen your .blend file and SAVE with a different Movie Format option.\n You selected: "
+              f"{blender_file_format}. It isn't supported with this script.\n\n")
+        print(80 * "#")
+        exit()
+
+    if blender_use_autosplit:
+        subprocess.call(clr_cmd, shell=True)
+        print(80 * "#")
+        print("\n Please reopen your .blend file and UNCHECK the 'AUTOSPLIT OUTPUT' option \n that is located in the "
+              "encoding section.\n\n")
+        print(80 * "#")
+        exit()
 
 #______________________________________________________________________________
 #
@@ -787,11 +773,9 @@ if display_script_settings_banner:
     else:
         print(25 * " " + "Press [ CTRL + C ] to QUIT\n")
 
-    print(+17 * "#" + " THE VIDEO EDITOR'S RENDER SCRIPT FOR BLENDER "\
-    + 17 * "#"+ "\n")
+    print(17 * "#" + " THE VIDEO EDITOR'S RENDER SCRIPT FOR BLENDER " + 17 * "#"+ "\n")
 
-    print(" Use [ " + str(cores_enabled) + " of "\
-    + str(logical_cores_available) + " ] Logical CPU Cores ", end =" ")
+    print(f" Use [ {cores_enabled} of {logical_cores_available} ] Logical CPU Cores ", end =" ")
 
     if show_render_status:
         print(" (Show Render Status [ON] (Slower))\n")
@@ -799,57 +783,48 @@ if display_script_settings_banner:
         print(" (Show Render Status [OFF] (faster))\n")
 
     if color_management_defauts_render_speed_up:
-        print("| Color Mananagement Speedup Override is ON.\
- This sets \"View Transform\" \n| and \"Look\" to 2.7X Defaults\
- -- It's 3X faster (Script Line 205)\n")
+        print('| Color Mananagement Speedup Override is ON. This sets "View Transform" \n| and "Look" to 2.7X '
+              'Defaults -- It\'s 3X faster (Script Line 205)\n')
 
     if show_cpu_core_lowram_notice:
-        print("| For best render time, each Core needs 1.6GB to 3GB RAM. Reserv\
-e more CPU |\n| Cores if you experience severe slowdown due to Low\
- RAM. (Script Line 141)|\n")
+        print("| For best render time, each Core needs 1.6GB to 3GB RAM. Reserve more CPU |\n| Cores if you "
+              "experience severe slowdown due to Low RAM. (Script Line 141)|\n")
 
     if force_one_instance_render:
-        print(" Script will Force 1 blender Instance. (MultiCore is [ OFF ])"\
-        + "\n")
+        print(" Script will Force 1 blender Instance. (MultiCore is [ OFF ])\n")
 
     if bypass_low_cpu_warnings:
-        print(" Low CPU warnings are turned [ OFF ]" + "\n")
+        print(" Low CPU warnings are turned [ OFF ]\n")
 
     if permit_scene_strips:
         print(" Scene strips have been turned [ ON ] (May be Buggy)\n")
 
     if bypass_huffyuv_and_raw_avi_warnings:
-        print(" HUFFYUV and RAW_AVI Warnings turned [ OFF ]" + "\n")
+        print(" HUFFYUV and RAW_AVI Warnings turned [ OFF ]\n")
 
     if auto_delete_temp_files:
-        print(" Auto Deletion of Temp Files is [ ON ]" + "\n")
+        print(" Auto Deletion of Temp Files is [ ON ]\n")
 
     if auto_overwrite_files:
-        print(" Auto OverWriting of old render files is [ ON ]" + "\n")
+        print(" Auto OverWriting of old render files is [ ON ]\n")
 
     print_banner = 30 * "-" + "[ RENDER SETTINGS ]" + 30 * "-" + "\n\n"
 
     if number_of_scenes > 1:
-        print_banner += " Your Project has [ " + str(number_of_scenes)\
-        + " Scenes ], make sure that you save your blend file with\n the \
-the first Scene showing. (First Scene is usually named, \"Scene\")\n\n"
+        print_banner += f" Your Project has [ {number_of_scenes} Scenes ], make sure that you save your blend " \
+                        f"file with\n the first Scene showing. (First Scene is usually named, \"Scene\")\n\n"
 
     if blender_image_sequence:
-        print_banner += "  IMAGE SEQUENCE: [ " + blender_file_format + " ] [ "\
-        + str(blender_x_times_res_percent) + " x "\
-        + str(blender_y_times_res_percent) + " ]"
-
-        print_banner += " [ " + str(the_framerate_float) + " FPS ]\n"
-        print_banner += "                   [ Frames: " + str(start_frame_is)\
-        + " - " + str(end_frame_is) + " ]" + " [ Color Mode: "\
-        + blender_color_mode + " ]\n"
+        print_banner += f"  IMAGE SEQUENCE: [ {blender_file_format} ] [ {blender_x_times_res_percent} x {blender_y_times_res_percent} ]"
+        print_banner += f" [ {the_framerate_float} FPS ]\n"
+        print_banner += f"                   [ Frames: {start_frame_is} - {end_frame_is} ] [ Color Mode: {blender_color_mode} ]\n"
 
     if not blender_image_sequence:
         hide_codec = False
 
         if blender_file_format in ("AVI_JPEG","AVI_RAW"):
-           print_banner += "  VIDEO: [ " + blender_file_format
-           hide_codec = True
+            print_banner += "  VIDEO: [ " + blender_file_format
+            hide_codec = True
         elif blender_vid_format == "QUICKTIME":
             print_banner += "  VIDEO: [ MOV"                               #  | Quicktime Format uses MOV container
         elif blender_vid_format == "H264":
@@ -865,34 +840,26 @@ the first Scene showing. (First Scene is usually named, \"Scene\")\n\n"
             elif blender_vid_format == "H264":
                 print_banner += " (H264) ] [ "
             else:
-                print_banner += " ( " + blender_video_codec + " ) ] [ "
+                print_banner += f" ( {blender_video_codec} ) ] [ "
         else:
             print_banner += " ] [ "                                        #  | This close the AVI_JPEG and AVI_RAW settings
 
-        print_banner += str(blender_x_times_res_percent) + " x "\
-        + str(blender_y_times_res_percent) + " ]"
-        print_banner += " [ " + str(the_framerate_float)\
-        + " FPS ] [ GOP " + str(blender_gop) + " ]\n"
+        print_banner += f"{blender_x_times_res_percent} x {blender_y_times_res_percent} ]"
+        print_banner += f" [ {the_framerate_float} FPS ] [ GOP {blender_gop} ]\n"
 
         if blender_use_lossless_output and blender_video_codec == 'H264':
             print_banner += "          [ Lossless ] "
         else:
             if use_constant_bitrate:
-                print_banner += "          [ Bitrate: "\
-                + str(blender_video_bitrate) + " kb/s ] "
+                print_banner += f"          [ Bitrate: {blender_video_bitrate} kb/s ] "
             else:
-                print_banner += "        [ Quality: "\
-                + str(blender_constant_rate_factor) + " ("+ blender_ffmpeg_preset +")] "
+                print_banner += f"        [ Quality: {blender_constant_rate_factor} ({blender_ffmpeg_preset})] "
 
-            print_banner += "[ Frames: " + str(start_frame_is) + " - "\
-            + str(end_frame_is) + " ]" + " [ Color Mode: "\
-            + blender_color_mode + " ]\n"
+            print_banner += f"[ Frames: {start_frame_is} - {end_frame_is} ] [ Color Mode: {blender_color_mode} ]\n"
 
     if render_gif:
-        print_banner += "\n  GIF RENDER is [ ON ]\n ([ "\
-        + gif_framerate + " FPS ] [ Stats:" + stats_mode\
-        + " ] [ Dither: " + dither_options + " ] [ X Scale: "\
-        + str(gif_scale) + "] [Scaler:" + the_scaler + "])\n"
+        print_banner += f"\n  GIF RENDER is [ ON ]\n ([ {gif_framerate} FPS ] [ Stats:{stats_mode} ] "
+        print_banner += f"[ Dither: {dither_options} ] [ X Scale: {str(gif_scale)}] [Scaler:{the_scaler}])\n"
 
     if blender_audio_codec != "NONE" and not render_gif :
         print_banner += "\n  AUDIO: [ " + blender_audio_codec
@@ -900,16 +867,16 @@ the first Scene showing. (First Scene is usually named, \"Scene\")\n\n"
             print_banner += " (libfdk)"
         print_banner += " ]"
         if use_ffmpeg_audio_bitrates:
-            print_banner += f" [ {str(custom_audio_bitrate)} kb/s ] ( FFmpeg Custom Bitrate [ ON ] )"
+            print_banner += f" [ {custom_audio_bitrate} kb/s ] ( FFmpeg Custom Bitrate [ ON ] )"
         else:
-            print_banner += f" [ {str(blender_audio_bitrate)} kb/s ]"
+            print_banner += f" [ {blender_audio_bitrate} kb/s ]"
 
-        print_banner += f" [ VOLUME: {str(int(round(blender_audio_volume * 100)))}% ]\n"
+        print_banner += f" [ VOLUME: {int(round(blender_audio_volume * 100))}% ]\n"
         print_banner += f"          \n"
-        print_banner += f"[ Sample Rate: {str(blender_audio_mixrate)} ] [ Audio Format: {export_audio_format} ]"
+        print_banner += f"[ Sample Rate: {blender_audio_mixrate} ] [ Audio Format: {export_audio_format} ]"
 
     if force_one_instance_render:
-        print_banner += "\n  Render Engine: " + blender_render_engine + "\n"
+        print_banner += f"\n  Render Engine: {blender_render_engine}\n"
         print_banner += 80 * "-"
 
     print(print_banner)
@@ -918,8 +885,7 @@ the first Scene showing. (First Scene is usually named, \"Scene\")\n\n"
 
     while banner_wait_time:
         mins, secs = divmod(banner_wait_time, 60)
-        time_format = ' Render Will Begin in ' + '{:02d}'.format(secs)\
-        + " seconds"
+        time_format = f' Render Will Begin in {secs:02d} seconds'
         print(time_format, end='\r')
         time.sleep(1)
         banner_wait_time -= 1
@@ -929,323 +895,322 @@ the first Scene showing. (First Scene is usually named, \"Scene\")\n\n"
 #                           CREATE FILES AND FOLDERS
 #______________________________________________________________________________
 
-#----[ CREATE FOLDERS TO STORE GENERATED TEMP FILES ]
+if True:
 
-if not os.path.exists(path_to_av_source):
-    os.makedirs(path_to_av_source)
+    #----[ CREATE FOLDERS TO STORE GENERATED TEMP FILES ]
 
-if not os.path.exists(path_to_other_files):
-    os.makedirs(path_to_other_files)
+    if not os.path.exists(path_to_av_source):
+        os.makedirs(path_to_av_source)
 
-#----[ CREATE RENDER SHORTCUT ]                                                #  | After running script once, clickable file is generated to run script again.
+    if not os.path.exists(path_to_other_files):
+        os.makedirs(path_to_other_files)
 
-with open(os.path.join(full_root_filepath, click_me), "w+") as f:
-    if my_platform == "Windows":
-        f.write(f'echo off\n"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}')
+    #----[ CREATE RENDER SHORTCUT ]                                                #  | After running script once, clickable file is generated to run script again.
 
-    elif my_platform == "Darwin":
-        f.write('#!/bin/bash\n' \
-                + 'cd "$(dirname \"$BASH_SOURCE\")" || {\n' \
-                + 'echo "Error getting script directory" >&2\n' \
-                + 'exit 1\n' \
-                + '}\n'
-                + f'"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}')
+    with open(os.path.join(full_root_filepath, click_me), "w+") as f:
+        if my_platform == "Windows":
+            f.write(f'echo off\n"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}')
 
-    elif my_platform == "Linux":
-        f.write('#!/bin/bash\n' \
-                + 'cd "$(dirname \"$BASH_SOURCE\")" || {\n' \
-                + 'echo "Error getting script directory" >&2\n' \
-                + 'exit 1\n' \
-                + '}\n'
-                + f'{terminal_cmd} "bash -c \'"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}"\'')
+        elif my_platform == "Darwin":
+            f.write('#!/bin/bash\n'
+                    + 'cd "$(dirname \"$BASH_SOURCE\")" || {\n'
+                    + 'echo "Error getting script directory" >&2\n'
+                    + 'exit 1\n'
+                    + '}\n'
+                    + f'"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}')
 
-    else:
-        f.write('#!/bin/bash\n' \
-                + 'cd "$(dirname \"$BASH_SOURCE\")" || {\n' \
-                + 'echo "Error getting script directory" >&2\n' \
-                + 'exit 1\n' \
-                + '}\n'
-                + f'{terminal_cmd} "bash -c \'"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}"\'')
+        elif my_platform == "Linux":
+            f.write('#!/bin/bash\n'
+                    + 'cd "$(dirname \"$BASH_SOURCE\")" || {\n'
+                    + 'echo "Error getting script directory" >&2\n'
+                    + 'exit 1\n'
+                    + '}\n'
+                    + f'{terminal_cmd} "bash -c \'"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}"\'')
 
-if my_platform != "Windows":
-    try:
-        subprocess.call(f'{make_script_executable} "{full_root_filepath}{click_me}"', shell=True)
-        print(click_me + " file can be clicked to render your video.")
-    except:
-        print("Can't make file executable. You will need to go to properties\
-and make the file named: " + click_me + "executable. This will allow clicking\
-to render." )
+        else:
+            f.write('#!/bin/bash\n'
+                    + 'cd "$(dirname \"$BASH_SOURCE\")" || {\n'
+                    + 'echo "Error getting script directory" >&2\n'
+                    + 'exit 1\n'
+                    + '}\n'
+                    + f'{terminal_cmd} "bash -c \'"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}"\'')
 
-#----[ CREATE .BLEND OVERRIDE FILE ]
-with open(os.path.join(path_to_other_files, blendfile_override_setting_filename), "w+") as f:
-    f.write(blendfile_override_setting)
+    if my_platform != "Windows":
+        try:
+            subprocess.call(f'{make_script_executable} "{full_root_filepath}{click_me}"', shell=True)
+            print(click_me + " file can be clicked to render your video.")
+        except:
+            print(f"Can't make file executable. You will need to go to properties and make the file named: {click_me} executable. This will allow clicking to render.")
+
+    #----[ CREATE .BLEND OVERRIDE FILE ]
+    with open(os.path.join(path_to_other_files, blendfile_override_setting_filename), "w+") as f:
+        f.write(blendfile_override_setting)
 
 #_______________________________________________________________________________
 #
 #                                 AUDIO SECTION
 #_______________________________________________________________________________
 
-#----[ GIFS DON'T USE AUDIO ]
-if render_gif:
-    blender_audio_codec = "NONE"                                               #  | GIF setting will disable Audio
+if True:
 
-#----[ TURN OFF AUDIO IF NOT TYPICALLY USED WITH FORMAT ]                      #  | Blender disables audio for these formats - so we will too.
-if blender_file_format in ("AVI_JPEG","AVI_RAW"):
-    blender_audio_codec = "NONE"
+    #----[ GIFS DON'T USE AUDIO ]
+    if render_gif:
+        blender_audio_codec = "NONE"                                               #  | GIF setting will disable Audio
 
-#----[ CLEAR THE TERMINAL WINDOW ]
-subprocess.call(clr_cmd, shell=True)
+    #----[ TURN OFF AUDIO IF NOT TYPICALLY USED WITH FORMAT ]                      #  | Blender disables audio for these formats - so we will too.
+    if blender_file_format in ("AVI_JPEG","AVI_RAW"):
+        blender_audio_codec = "NONE"
 
-#----[ START STOPWATCH TO TIME RENDERING ]
-start_of_render_time = time.time()
+    #----[ CLEAR THE TERMINAL WINDOW ]
+    subprocess.call(clr_cmd, shell=True)
 
-if blender_audio_codec != "NONE":
+    #----[ START STOPWATCH TO TIME RENDERING ]
+    start_of_render_time = time.time()
 
-    #----[ CHECK IF USER WANTS TO CONVERT TO A LOSSY AUDIO CODEC ]
-    if blender_audio_codec == "PCM":
-        user_wants_to_convert_audio = False
-    else:
-        user_wants_to_convert_audio = True
+    if blender_audio_codec != "NONE":
 
-    #----[ SET PATH TO THE PRIMARY EXPORTED AUDIO FILE: WAV(PCM) ]
-    path_to_wav = os.path.join(path_to_av_source, wav_filename)
-
-    #----[ SET AUDIO FILE EXTENSIONS ]
-    if export_audio_codec == "PCM":
-        export_audio_file_extension = ".wav"
-    else:
-        export_audio_file_extension = "." + export_audio_codec.lower()
-
-    if my_platform == "Windows":
-        print("\n\n Cancel this Script at any time by pressing [ CTRL \
-+ BREAK ] \n")
-    elif my_platform == "Darwin":
-        print("\n\n Cancel this Script at any time by pressing [ CTRL \
-+ C ] \n")
-    else:
-        print("\n\n Cancel this Script at any time by pressing [ CTRL \
-+ C ] \n")
-
-    print(" Extracting Audio as " + export_audio_container + "("\
-    + export_audio_codec + ")")
-    path_to_save_pcm = path_to_wav + export_audio_file_extension
-
-    blender_audio_extract_time_start = time.time()                             #  | Start PCM audio timer
-
-    bpy.ops.sound.mixdown(
-        filepath=path_to_save_pcm,
-        relative_path=False,
-        check_existing=False,
-        accuracy=export_audio_accuracy,
-        container=export_audio_container,
-        codec=export_audio_codec,
-        format=export_audio_format,
-        bitrate=export_audio_bitrate,
-        split_channels=export_audio_split_channels,
-    )
-
-    if blender_audio_volume != 1.0:                                            #  | If Project Volume is changed, adjust it.
-
-        fix_volume = "\"" + path_to_ffmpeg + "\"" + " -i " + "\""\
-        + path_to_save_pcm + "\"" + " -af "\
-        + "\"volume=" + str(blender_audio_volume) + "\""\
-        + " " + "\"" + path_to_av_source\
-        + wav_filename + "_newVolume" + export_audio_file_extension + "\""
-        subprocess.call(fix_volume, shell=True) # TODO: b1f6c1c4
-
-        move_wav_from = path_to_av_source\
-        + wav_filename + "_newVolume" + export_audio_file_extension # TODO: b1f6c1c4
-
-        move_wav_to = path_to_save_pcm
-
-        os.remove(move_wav_to)                                                 #  | Delete the orginal WAV file
-        shutil.move(move_wav_from, move_wav_to)                                #  | Replace original WAV file with fixVolume version.
-    blender_audio_extract_time_end = time.time()                               #  | End lossless audio timer
-
-    #----[ CREATE LOSSY AUDIO COMMAND STRING ]
-    path_to_compressed_audio = path_to_wav + "." # add extension later.
-
-    if blender_audio_codec == "AAC":                                           #  | Make acception for AAC codec
-        path_to_compressed_audio += "m4a"                                      #  | Use .m4a extension instead of .aac
-        hold_audio_codec = "m4a"                                               #  | We save this for later.
-
-    elif blender_audio_codec == "VORBIS":                                      #  | Vorbis needs to use ogg container
-        path_to_compressed_audio += "ogg"
-        hold_audio_codec = "ogg"                                               #  | We save this for later.
-
-    else:
-        hold_audio_codec = blender_audio_codec.lower()                         #  | Used for audio extension of all but aac
-        path_to_compressed_audio += blender_audio_codec.lower()
-
-    wav_to_compressed_audio = f'"{path_to_ffmpeg}"{can_we_overwrite} -i "{path_to_wav}{export_audio_file_extension}" -c:a '
-    if use_libfdk_acc:                                                         #  | If libfdk_acc is available it can be used here.
-        wav_to_compressed_audio += "libfdk_acc" + " -b:a "
-    else:
-        wav_to_compressed_audio += blender_audio_codec.lower() + " -b:a "
-
-    #----[ SET SUPPORTED AUDIO BITRATE RANGES ]
-    if blender_audio_codec == "AC3":
-        min_audio_bitrate = min_audio_bitrate_ac3
-        max_audio_bitrate = max_audio_bitrate_ac3
-    elif blender_audio_codec == "AAC":
-        min_audio_bitrate = min_audio_bitrate_aac
-        max_audio_bitrate = max_audio_bitrate_aac
-    elif blender_audio_codec == "MP2":
-        min_audio_bitrate = min_audio_bitrate_mp2
-        max_audio_bitrate = max_audio_bitrate_mp2
-    elif blender_audio_codec == "MP3":
-        max_audio_bitrate = max_audio_bitrate_mp3
-        min_audio_bitrate = min_audio_bitrate_mp3
-
-    #----[ IF USING FFMPEG BITRATE, KEEP IN SUPPORTED RANGE ]
-    if use_ffmpeg_audio_bitrates:
-        if custom_audio_bitrate < min_audio_bitrate:
-            blender_audio_bitrate = min_audio_bitrate
-        elif custom_audio_bitrate > max_audio_bitrate:
-            blender_audio_bitrate = max_audio_bitrate
+        #----[ CHECK IF USER WANTS TO CONVERT TO A LOSSY AUDIO CODEC ]
+        if blender_audio_codec == "PCM":
+            user_wants_to_convert_audio = False
         else:
-            blender_audio_bitrate = custom_audio_bitrate
-    else:
-        #----[ IF USING BLENDER'S BITRATE, KEEP IN SUPPORTED RANGE ]
-        if blender_audio_bitrate < min_audio_bitrate:
-            blender_audio_bitrate = min_audio_bitrate
-        if blender_audio_bitrate > max_audio_bitrate:
-            blender_audio_bitrate = max_audio_bitrate
+            user_wants_to_convert_audio = True
 
-    wav_to_compressed_audio += str(blender_audio_bitrate) + "k"
-    if blender_audio_codec == "AAC":
-        if not use_libfdk_acc:
-            wav_to_compressed_audio += " -strict experimental"                 #  | strict experimental makes AAC encode work. (Legacy: phased out on builds after 12/5/2015)
+        #----[ SET PATH TO THE PRIMARY EXPORTED AUDIO FILE: WAV(PCM) ]
+        path_to_wav = os.path.join(path_to_av_source, wav_filename)
 
-    if blender_audio_codec == "VORBIS":
-        wav_to_compressed_audio += " -strict experimental"                     #  | strict experimental makes VORBIS encode work.
+        #----[ SET AUDIO FILE EXTENSIONS ]
+        if export_audio_codec == "PCM":
+            export_audio_file_extension = ".wav"
+        else:
+            export_audio_file_extension = "." + export_audio_codec.lower()
 
-    if blender_audio_codec == "OPUS":
-        wav_to_compressed_audio += " -strict experimental"                     #  | strict experimental makes OPUS encode work.
+        if my_platform == "Windows":
+            print("\n\n Cancel this Script at any time by pressing [ CTRL + BREAK ] \n")
+        elif my_platform == "Darwin":
+            print("\n\n Cancel this Script at any time by pressing [ CTRL + C ] \n")
+        else:
+            print("\n\n Cancel this Script at any time by pressing [ CTRL + C ] \n")
 
-    wav_to_compressed_audio += f' "{path_to_compressed_audio}"'
+        print(f" Extracting Audio as {export_audio_container}({export_audio_codec})")
+        path_to_save_pcm = path_to_wav + export_audio_file_extension
 
-    #----[ CONVERT THE AUDIO ]
-    if user_wants_to_convert_audio:
-        print(f' Converting Audio using {blender_audio_codec} codec using bitrate of {str(blender_audio_bitrate)}k')
-        audio_conversion_time_start = time.time()                              #  | Start audio conversion timer
+        blender_audio_extract_time_start = time.time()                             #  | Start PCM audio timer
 
-        #----[ CONVERT WAV TO COMPRESSED FORMAT ]
-        subprocess.call(wav_to_compressed_audio, shell=True)
+        bpy.ops.sound.mixdown(
+            filepath=path_to_save_pcm,
+            relative_path=False,
+            check_existing=False,
+            accuracy=export_audio_accuracy,
+            container=export_audio_container,
+            codec=export_audio_codec,
+            format=export_audio_format,
+            bitrate=export_audio_bitrate,
+            split_channels=export_audio_split_channels,
+        )
 
-        audio_conversion_time_end = time.time()                                #  | End audio conversion timer
+        if blender_audio_volume != 1.0:                                            #  | If Project Volume is changed, adjust it.
 
-        #----[ MAKE SURE THAT A LOSSY FILE WAS CREATED ]
-        if not os.path.isfile(path_to_compressed_audio):
-            subprocess.call(clr_cmd, shell=True)
-            print(" There was an error compressing your audio. Please change \
-your render settings.")
-            exit()
+            fix_volume = "\"" + path_to_ffmpeg + "\"" + " -i " + "\""\
+            + path_to_save_pcm + "\"" + " -af "\
+            + "\"volume=" + str(blender_audio_volume) + "\""\
+            + " " + "\"" + path_to_av_source\
+            + wav_filename + "_newVolume" + export_audio_file_extension + "\""
+            subprocess.call(fix_volume, shell=True) # TODO: b1f6c1c4
 
-#______________________________________________________________________________
-#
-#            SET THE EXTENSIONS FOR EACH OF OUR VIDEO FORMATS/CODECS
-#______________________________________________________________________________
+            move_wav_from = path_to_av_source\
+            + wav_filename + "_newVolume" + export_audio_file_extension # TODO: b1f6c1c4
 
-if blender_file_format in ("AVI_JPEG","AVI_RAW"):
-    file_extension = ".avi"
-elif blender_vid_format in ("AVI","H264","XVID"):
-    file_extension = ".avi"
-elif blender_vid_format == "DV":
-    file_extension = ".dv"
-elif blender_vid_format == "FLASH":
-    file_extension = ".flv"
-elif blender_vid_format == "MKV":
-    file_extension = ".mkv"
-elif blender_vid_format == "MPEG1":
-    file_extension = ".mpg"
-elif blender_vid_format == "MPEG2":
-    file_extension = ".dvd"
-elif blender_vid_format == "MPEG4":
-    file_extension = ".mp4"
-elif blender_vid_format == "OGG":
-    file_extension = ".ogv"
-elif blender_vid_format == "QUICKTIME":
-    file_extension = ".mov"
-elif blender_vid_format == "WEBM":
-    file_extension = ".webm"
+            move_wav_to = path_to_save_pcm
+
+            os.remove(move_wav_to)                                                 #  | Delete the orginal WAV file
+            shutil.move(move_wav_from, move_wav_to)                                #  | Replace original WAV file with fixVolume version.
+        blender_audio_extract_time_end = time.time()                               #  | End lossless audio timer
+
+        #----[ CREATE LOSSY AUDIO COMMAND STRING ]
+        path_to_compressed_audio = path_to_wav + "." # add extension later.
+
+        if blender_audio_codec == "AAC":                                           #  | Make acception for AAC codec
+            path_to_compressed_audio += "m4a"                                      #  | Use .m4a extension instead of .aac
+            hold_audio_codec = "m4a"                                               #  | We save this for later.
+
+        elif blender_audio_codec == "VORBIS":                                      #  | Vorbis needs to use ogg container
+            path_to_compressed_audio += "ogg"
+            hold_audio_codec = "ogg"                                               #  | We save this for later.
+
+        else:
+            hold_audio_codec = blender_audio_codec.lower()                         #  | Used for audio extension of all but aac
+            path_to_compressed_audio += blender_audio_codec.lower()
+
+        wav_to_compressed_audio = f'"{path_to_ffmpeg}"{can_we_overwrite} -i "{path_to_wav}{export_audio_file_extension}" -c:a '
+        if use_libfdk_acc:                                                         #  | If libfdk_acc is available it can be used here.
+            wav_to_compressed_audio += "libfdk_acc" + " -b:a "
+        else:
+            wav_to_compressed_audio += blender_audio_codec.lower() + " -b:a "
+
+        #----[ SET SUPPORTED AUDIO BITRATE RANGES ]
+        if blender_audio_codec == "AC3":
+            min_audio_bitrate = min_audio_bitrate_ac3
+            max_audio_bitrate = max_audio_bitrate_ac3
+        elif blender_audio_codec == "AAC":
+            min_audio_bitrate = min_audio_bitrate_aac
+            max_audio_bitrate = max_audio_bitrate_aac
+        elif blender_audio_codec == "MP2":
+            min_audio_bitrate = min_audio_bitrate_mp2
+            max_audio_bitrate = max_audio_bitrate_mp2
+        elif blender_audio_codec == "MP3":
+            max_audio_bitrate = max_audio_bitrate_mp3
+            min_audio_bitrate = min_audio_bitrate_mp3
+
+        #----[ IF USING FFMPEG BITRATE, KEEP IN SUPPORTED RANGE ]
+        if use_ffmpeg_audio_bitrates:
+            if custom_audio_bitrate < min_audio_bitrate:
+                blender_audio_bitrate = min_audio_bitrate
+            elif custom_audio_bitrate > max_audio_bitrate:
+                blender_audio_bitrate = max_audio_bitrate
+            else:
+                blender_audio_bitrate = custom_audio_bitrate
+        else:
+            #----[ IF USING BLENDER'S BITRATE, KEEP IN SUPPORTED RANGE ]
+            if blender_audio_bitrate < min_audio_bitrate:
+                blender_audio_bitrate = min_audio_bitrate
+            if blender_audio_bitrate > max_audio_bitrate:
+                blender_audio_bitrate = max_audio_bitrate
+
+        wav_to_compressed_audio += str(blender_audio_bitrate) + "k"
+        if blender_audio_codec == "AAC":
+            if not use_libfdk_acc:
+                wav_to_compressed_audio += " -strict experimental"                 #  | strict experimental makes AAC encode work. (Legacy: phased out on builds after 12/5/2015)
+
+        if blender_audio_codec == "VORBIS":
+            wav_to_compressed_audio += " -strict experimental"                     #  | strict experimental makes VORBIS encode work.
+
+        if blender_audio_codec == "OPUS":
+            wav_to_compressed_audio += " -strict experimental"                     #  | strict experimental makes OPUS encode work.
+
+        wav_to_compressed_audio += f' "{path_to_compressed_audio}"'
+
+        #----[ CONVERT THE AUDIO ]
+        if user_wants_to_convert_audio:
+            print(f' Converting Audio using {blender_audio_codec} codec using bitrate of {str(blender_audio_bitrate)}k')
+            audio_conversion_time_start = time.time()                              #  | Start audio conversion timer
+
+            #----[ CONVERT WAV TO COMPRESSED FORMAT ]
+            subprocess.call(wav_to_compressed_audio, shell=True)
+
+            audio_conversion_time_end = time.time()                                #  | End audio conversion timer
+
+            #----[ MAKE SURE THAT A LOSSY FILE WAS CREATED ]
+            if not os.path.isfile(path_to_compressed_audio):
+                subprocess.call(clr_cmd, shell=True)
+                print(" There was an error compressing your audio. Please change your render settings.")
+                exit()
+
+    #______________________________________________________________________________
+    #
+    #            SET THE EXTENSIONS FOR EACH OF OUR VIDEO FORMATS/CODECS
+    #______________________________________________________________________________
+
+    if blender_file_format in ("AVI_JPEG","AVI_RAW"):
+        file_extension = ".avi"
+    elif blender_vid_format in ("AVI","H264","XVID"):
+        file_extension = ".avi"
+    elif blender_vid_format == "DV":
+        file_extension = ".dv"
+    elif blender_vid_format == "FLASH":
+        file_extension = ".flv"
+    elif blender_vid_format == "MKV":
+        file_extension = ".mkv"
+    elif blender_vid_format == "MPEG1":
+        file_extension = ".mpg"
+    elif blender_vid_format == "MPEG2":
+        file_extension = ".dvd"
+    elif blender_vid_format == "MPEG4":
+        file_extension = ".mp4"
+    elif blender_vid_format == "OGG":
+        file_extension = ".ogv"
+    elif blender_vid_format == "QUICKTIME":
+        file_extension = ".mov"
+    elif blender_vid_format == "WEBM":
+        file_extension = ".webm"
 
 #______________________________________________________________________________
 #
 #              CREATE STRING FOR THE BACKGROUND BLENDER INSTANCES
 #______________________________________________________________________________
 
-#----[ SET NUMBER OF FRAMES THAT WILL BE RENDERED ON EACH ENABLED CORE ]
-portion_of_frames_per_core = math.ceil(total_number_of_frames / cores_enabled)
+if True:
 
-#----[ GET THE FILENAME OF YOUR CUSTOM BLEND FILE ]
-filename = bpy.path.basename(bpy.context.blend_data.filepath)
-filename_and_path = os.path.join(full_root_filepath, filename)
+    #----[ SET NUMBER OF FRAMES THAT WILL BE RENDERED ON EACH ENABLED CORE ]
+    portion_of_frames_per_core = math.ceil(total_number_of_frames / cores_enabled)
 
-#----[ INITIAL LOOP VARIABLES ]
-next_core = 1
-new_start_frame_number = start_frame_is
-new_end_frame_number = start_frame_is + portion_of_frames_per_core
+    #----[ GET THE FILENAME OF YOUR CUSTOM BLEND FILE ]
+    filename = bpy.path.basename(bpy.context.blend_data.filepath)
+    filename_and_path = os.path.join(full_root_filepath, filename)
 
-while next_core <= cores_enabled:
+    #----[ INITIAL LOOP VARIABLES ]
+    next_core = 1
+    new_start_frame_number = start_frame_is
+    new_end_frame_number = start_frame_is + portion_of_frames_per_core
 
-    blender_command = blender_command + start_blender
-    #----[ IF WINDOWS PLATFORM IS PRESENT, CREATE INDIVIDUAL LOCK FILES ]
-    if my_platform == "Windows":
-        blender_command += fr'9>\"%lock%{str(next_core)}\" '  #  | only Windows needs to create a lock file for each blender job.
+    while next_core <= cores_enabled:
 
-    blender_command += \
-        f'"{blender_path}" -b "{filename_and_path}"' \
-        + f' -P "{os.path.join(path_to_other_files, blendfile_override_setting_filename)}"' \
-        + f' -E {blender_render_engine}' \
-        + f' -s {new_start_frame_number:d}' \
-        + f' -e {new_end_frame_number:d}'
+        blender_command = blender_command + start_blender
+        #----[ IF WINDOWS PLATFORM IS PRESENT, CREATE INDIVIDUAL LOCK FILES ]
+        if my_platform == "Windows":
+            blender_command += fr'9>\"%lock%{str(next_core)}\" '  #  | only Windows needs to create a lock file for each blender job.
 
-    if not blender_image_sequence:
-        fn = f'{next_core:d}{file_extension}'
-        blender_command += f' -o "{os.path.join(path_to_av_source, fn)}" -a{ampersand}\n'
-    else:
-        blender_command += f' -o "{img_sequence_dir}//" -F {blender_file_format} -x 1 -a{ampersand}\n'
+        blender_command += \
+            f'"{blender_path}" -b "{filename_and_path}"' \
+            + f' -P "{os.path.join(path_to_other_files, blendfile_override_setting_filename)}"' \
+            + f' -E {blender_render_engine}' \
+            + f' -s {new_start_frame_number:d}' \
+            + f' -e {new_end_frame_number:d}'
 
-    new_start_frame_number = new_end_frame_number + 1
-    new_end_frame_number = new_start_frame_number + portion_of_frames_per_core
+        if not blender_image_sequence:
+            fn = f'{next_core:d}{file_extension}'
+            blender_command += f' -o "{os.path.join(path_to_av_source, fn)}" -a{ampersand}\n'
+        else:
+            blender_command += f' -o "{img_sequence_dir}//" -F {blender_file_format} -x 1 -a{ampersand}\n'
 
-    if new_end_frame_number > end_frame_is:
-        new_end_frame_number = end_frame_is
+        new_start_frame_number = new_end_frame_number + 1
+        new_end_frame_number = new_start_frame_number + portion_of_frames_per_core
 
-    next_core += 1
+        if new_end_frame_number > end_frame_is:
+            new_end_frame_number = end_frame_is
 
-#----[ THE WINDOWS LOCK FILE ROUTINE (ENCAPSULATES BLENDER INSTANCE STRING) ]
-if my_platform == "Windows":                                                   #  | Without testable lock files, Windows
-                                                                               #  | doesn't WAIT to finish the blender jobs
-    wait_blender_routine =\
-        '@echo off\n'\
-        + 'setlocal\n'\
-        + 'set "lock=%temp%\wait%random%.lock"\n'\
-        + '\n'
+        next_core += 1
 
-    #----[ ADD OUR BACKGROUND BLENDER COMMAND STRING HERE ]
-    wait_blender_routine += blender_command
+    #----[ THE WINDOWS LOCK FILE ROUTINE (ENCAPSULATES BLENDER INSTANCE STRING) ]
+    if my_platform == "Windows":                                                   #  | Without testable lock files, Windows
+                                                                                   #  | doesn't WAIT to finish the blender jobs
+        wait_blender_routine =\
+            '@echo off\n'\
+            + 'setlocal\n'\
+            + 'set "lock=%temp%\wait%random%.lock"\n'\
+            + '\n'
 
-    wait_blender_routine +=\
-        '\n'\
-        + ':Wait for all Instances to finish \n'\
-        + '1>nul 2>nul ping /n 2 ::1\n'\
-        + 'for %%F in ("%lock%*") do (\n'\
-        + '  (call ) 9>"%%F" || goto :Wait\n'\
-        + ') 2>nul\n'\
-        + '\n'\
-        + '::delete the lock files\n'\
-        + 'del "%lock%*"\n'
+        #----[ ADD OUR BACKGROUND BLENDER COMMAND STRING HERE ]
+        wait_blender_routine += blender_command
 
-    blender_command = wait_blender_routine
+        wait_blender_routine +=\
+            '\n'\
+            + ':Wait for all Instances to finish \n'\
+            + '1>nul 2>nul ping /n 2 ::1\n'\
+            + 'for %%F in ("%lock%*") do (\n'\
+            + '  (call ) 9>"%%F" || goto :Wait\n'\
+            + ') 2>nul\n'\
+            + '\n'\
+            + '::delete the lock files\n'\
+            + 'del "%lock%*"\n'
 
-#=============================================================================#
-#                    IF IMAGE SEQUENCE, SKIP TO FINAL RENDER                  #
-#=============================================================================#
+        blender_command = wait_blender_routine
 
-if blender_image_sequence:
-    full_command_string = blender_command + wait_here
+    #=============================================================================#
+    #                    IF IMAGE SEQUENCE, SKIP TO FINAL RENDER                  #
+    #=============================================================================#
+
+    if blender_image_sequence:
+        full_command_string = blender_command + wait_here
 #______________________________________________________________________________
 #
 #                              VIDEO CONCATENATION
@@ -1318,78 +1283,80 @@ if not blender_image_sequence:
 #                     EXECUTE COMMAND STRINGS FROM TERMINAL
 #______________________________________________________________________________
 
-#----[ SET PATH TO THE RENDER FILE ]
-render_filename_location = os.path.join(path_to_other_files, render_filename)
+if True:
 
-#----[ WRITE COMMAND STRINGS TO FILE ]
-with open(render_filename_location, "w+") as f:
-    f.write(full_command_string)
+    #----[ SET PATH TO THE RENDER FILE ]
+    render_filename_location = os.path.join(path_to_other_files, render_filename)
 
-#----[ CREATE EXECUTABLE RENDER FILE COMMAND ]
-commands_to_execute = f'{use_bash}"{render_filename_location}"'
-print(commands_to_execute)
+    #----[ WRITE COMMAND STRINGS TO FILE ]
+    with open(render_filename_location, "w+") as f:
+        f.write(full_command_string)
 
-#----[ EXECUTE THE RENDER COMMAND FILE ]
+    #----[ CREATE EXECUTABLE RENDER FILE COMMAND ]
+    commands_to_execute = f'{use_bash}"{render_filename_location}"'
+    print(commands_to_execute)
 
-if show_render_status == False:                                                #  | Render Status happens in this section. Thanks to https://github.com/mitxela
-    subprocess.call(commands_to_execute, shell=True) # run script in terminal
-else:
-    proc = subprocess.Popen(commands_to_execute, shell=True, stdout=subprocess.PIPE)
+    #----[ EXECUTE THE RENDER COMMAND FILE ]
 
-    pattern = re.compile(' Time:') # printed after each frame has rendered
-    rendered_frames = 0
+    if show_render_status == False:                                                #  | Render Status happens in this section. Thanks to https://github.com/mitxela
+        subprocess.call(commands_to_execute, shell=True) # run script in terminal
+    else:
+        proc = subprocess.Popen(commands_to_execute, shell=True, stdout=subprocess.PIPE)
 
-    for line in proc.stdout:
-        if pattern.match(line.decode('utf-8')):
-            rendered_frames +=1
-            print("Progress: %02.2f%% (%d / %d)" % (
-                100 * rendered_frames / total_number_of_frames,
-                rendered_frames,
-                total_number_of_frames
-                ), end='\r')
-    proc.wait()
+        pattern = re.compile(' Time:') # printed after each frame has rendered
+        rendered_frames = 0
+
+        for line in proc.stdout:
+            if pattern.match(line.decode('utf-8')):
+                rendered_frames +=1
+                print("Progress: %02.2f%% (%d / %d)" % (
+                    100 * rendered_frames / total_number_of_frames,
+                    rendered_frames,
+                    total_number_of_frames
+                    ), end='\r')
+        proc.wait()
 
 #______________________________________________________________________________
 #
 #                           MOVE / DELETE MEDIA FILES
 #______________________________________________________________________________
 
-#----[ IF YOU HAVE NO AUDIO, NO NEED TO MUX, JUST MOVE VIDEO UP A DIRECTORY ]
-if blender_audio_codec == "NONE" and not render_gif\
-and not blender_image_sequence:
-    move_from = joined_video_no_audio + file_extension
-    move_to = joined_video_with_audio + file_extension
-    shutil.move(move_from, move_to)
+if True:
 
-#----[ IF IMAGE SEQUENCE EXISTS, MOVE ANY WANTED AUDIO UP A DIRECTORY ]
-if blender_image_sequence and blender_audio_codec != "NONE":
-    if not user_wants_to_convert_audio:
-        move_from = path_to_av_source + wav_filename\
-        + export_audio_file_extension
-        move_to = full_root_filepath + wav_filename + "_for_"\
-        + img_sequence_dir + export_audio_file_extension # TODO: b1f6c1c4
+    #----[ IF YOU HAVE NO AUDIO, NO NEED TO MUX, JUST MOVE VIDEO UP A DIRECTORY ]
+    if blender_audio_codec == "NONE" and not render_gif\
+    and not blender_image_sequence:
+        move_from = joined_video_no_audio + file_extension
+        move_to = joined_video_with_audio + file_extension
         shutil.move(move_from, move_to)
 
-    elif user_wants_to_convert_audio:
-        move_from = path_to_compressed_audio
-        move_to = full_root_filepath + wav_filename + "_for_ "\
-        + img_sequence_dir + "." + hold_audio_codec # TODO: b1f6c1c4
-        shutil.move(move_from, move_to)
+    #----[ IF IMAGE SEQUENCE EXISTS, MOVE ANY WANTED AUDIO UP A DIRECTORY ]
+    if blender_image_sequence and blender_audio_codec != "NONE":
+        if not user_wants_to_convert_audio:
+            move_from = path_to_av_source + wav_filename\
+            + export_audio_file_extension
+            move_to = full_root_filepath + wav_filename + "_for_"\
+            + img_sequence_dir + export_audio_file_extension # TODO: b1f6c1c4
+            shutil.move(move_from, move_to)
 
-#----[ DELETE WORKING DIRECTORY ]
-if auto_delete_temp_files:
-    try:
-        shutil.rmtree(full_root_filepath + working_dir_temp)
-    except:
-        subprocess.call(clr_cmd, shell=True)
-        print(80 *"#")
-        print(" " + working_dir_temp + " is locked by the Operating System. \
-So it can't be Deleted\n automatically. This happens when a file in the "\
-+ working_dir_temp + " is open in\n your file browser or terminal and the \
-script attempts to Delete. This doesn't\n harm the final video render in any \
-way. This script will run normally the next\n time you run it. Just remember \
-to stop viewing the files in the\n " + working_dir_temp + " before the \
-script finishes.")
+        elif user_wants_to_convert_audio:
+            move_from = path_to_compressed_audio
+            move_to = full_root_filepath + wav_filename + "_for_ "\
+            + img_sequence_dir + "." + hold_audio_codec # TODO: b1f6c1c4
+            shutil.move(move_from, move_to)
+
+    #----[ DELETE WORKING DIRECTORY ]
+    if auto_delete_temp_files:
+        try:
+            shutil.rmtree(full_root_filepath + working_dir_temp)
+        except:
+            subprocess.call(clr_cmd, shell=True)
+            print(80 *"#")
+            print(f" {working_dir_temp} is locked by the Operating System. So it can\'t be Deleted\n automatically. "
+                  f"This happens when a file in the {working_dir_temp} is open in\n your file browser or terminal and "
+                  f"the script attempts to Delete. This doesn\'t\n harm the final video render in any way. This "
+                  f"script will run normally the next\n time you run it. Just remember to stop viewing the files in "
+                  f"the\n {working_dir_temp} before the script finishes.")
 
 #______________________________________________________________________________
 #
@@ -1400,40 +1367,35 @@ print(80 * "#" + "\n\n")
 
 if blender_audio_codec != "NONE":
     #----[ TIME TO EXTRACT AUDIO ]
-    time_to_extract_audio = blender_audio_extract_time_end \
-    - blender_audio_extract_time_start
+    time_to_extract_audio = blender_audio_extract_time_end - blender_audio_extract_time_start
 
     m, s = divmod(time_to_extract_audio, 60)
     h, m = divmod(m, 60)
 
     if h > 0:
-        print("\n Audio Extract took %d Hours %02d Minutes %02d Seconds\n"\
-        % (h, m, s))
+        print(f"\n Audio Extract took {h:d} Hours {m:02d} Minutes {s:02d} Seconds\n")
 
     elif m > 0:
-        print("\n Audio Extract took %02d Minutes %02d Seconds\n" % (m, s))
+        print(f"\n Audio Extract took {m:02d} Minutes {s:02d} Seconds\n")
 
     else:
-        print("\n Audio Extract took %02d Seconds\n" % (s))
+        print(f"\n Audio Extract took {s:02d} Seconds\n")
 
     if user_wants_to_convert_audio:
         #----[ TIME TO CONVERT AUDIO TO OTHER FORMAT ]
-        time_to_convert_lossy_audio =\
-        audio_conversion_time_end - audio_conversion_time_start
+        time_to_convert_lossy_audio = audio_conversion_time_end - audio_conversion_time_start
 
         m, s = divmod(time_to_convert_lossy_audio , 60)
         h, m = divmod(m, 60)
 
         if h > 0:
-            print("\n Audio Encode took %d Hours %02d Minutes %02d Seconds\n"\
-            % (h, m, s))
+            print(f"\n Audio Encode took {h:d} Hours {m:02d} Minutes {s:02d} Seconds\n")
 
         elif m > 0:
-            print("\n Audio Encode took %02d Minutes %02d Seconds\n"\
-            % (m, s))
+            print(f"\n Audio Encode took {m:02d} Minutes {s:02d} Seconds\n")
 
         else:
-            print(" Audio Encode took %02d Seconds\n" % (s))
+            print(f" Audio Encode took {s:02d} Seconds\n")
 
 #----[ TOTAL TIME TO PROCESS ALL JOBS ]
 end_of_script_time = time.time() - start_of_render_time
@@ -1442,12 +1404,12 @@ m, s = divmod(end_of_script_time, 60)
 h, m = divmod(m, 60)
 
 if h > 0:
-    print(" Render took %d Hours %02d Minutes %02d Seconds" % (h, m, s))
+    print(f" Render took {h:d} Hours {m:02d} Minutes {s:02d} Seconds")
 
 elif m > 0:
-    print(" Render took %02d Minutes %02d Seconds" % (m, s))
+    print(f" Render took {m:02d} Minutes {s:02d} Seconds")
 
 else:
-    print(" Render took %02d Seconds" % (s))
+    print(f" Render took {s:02d} Seconds")
 
 print("\n\n" + 80 * "#")
