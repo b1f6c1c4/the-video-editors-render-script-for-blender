@@ -373,7 +373,7 @@ else:
 # Blender version reported by .blend file
 blender_ver = str(bpy.data.version[0]) + "" + str(bpy.data.version[1]) + "0"  # edited out bpy.data.version[2] due to changes in blender 2.83
 blender_ver = int(blender_ver)                                                #  | 2790 int value (2.79.0)
-# Blender version being used for rendering 
+# Blender version being used for rendering
 blender_ver_running = str(bpy.app.version[0]) + "" + str(bpy.app.version[1]) + "0"  # edited out bpy.app.version[2] due to changes in blender 2.83
 blender_ver_running = int(blender_ver_running)
 
@@ -414,21 +414,18 @@ for scene in bpy.data.scenes:
         blender_color_mode = scene.render.image_settings.color_mode#   (RGB)
 
         # If 2.78c or lower get these settings
-        if blender_ver < 2790:
-            blender_use_lossless_output = scene.render.ffmpeg.use_lossless_output
+        blender_constant_rate_factor = scene.render.ffmpeg.constant_rate_factor #    (HIGH)
+        blender_ffmpeg_preset = scene.render.ffmpeg.ffmpeg_preset #                  (FAST)
+        #Check Lossless output
+        if blender_constant_rate_factor == "LOSSLESS":
+            blender_use_lossless_output = True
         else:
-            blender_constant_rate_factor = scene.render.ffmpeg.constant_rate_factor #    (HIGH)
-            blender_ffmpeg_preset = scene.render.ffmpeg.ffmpeg_preset #                  (FAST)
-            #Check Lossless output
-            if blender_constant_rate_factor == "LOSSLESS":
-                blender_use_lossless_output = True
-            else:
-                blender_use_lossless_output = False
+            blender_use_lossless_output = False
 
-            if blender_constant_rate_factor == "NONE":
-                use_constant_bitrate = True
-            else: 
-                use_constant_bitrate = False
+        if blender_constant_rate_factor == "NONE":
+            use_constant_bitrate = True
+        else:
+            use_constant_bitrate = False
 
         #Scale resolution
         blender_x_times_res_percent =\
@@ -516,11 +513,7 @@ if sound_strips == 0:                                                          #
 
 if blender_audio_codec != "NONE":                                              #  | If we're rendering audio, we can collect the Sample Format setting from User Pref.
 
-    if blender_ver < 2800:
-        try_sample_format = bpy.context.user_preferences.system.audio_sample_format
-        
-    else: 
-        try_sample_format = bpy.context.preferences.system.audio_sample_format #  | In Blender 2.8 and higher they moved the audio format to preferences
+    try_sample_format = bpy.context.preferences.system.audio_sample_format #  | In Blender 2.8 and higher they moved the audio format to preferences
 
     if try_sample_format in ("U8","S16","S24","S32"):
         if export_audio_format == "":
@@ -534,7 +527,7 @@ if blender_audio_codec != "NONE":                                              #
 
 #----[ Switch Color Management settings to Match 2.79 defaults]                #  | In Blender 2.8, the default color management settings were changed - it triples render time.
 
-if color_management_defauts_render_speed_up and blender_ver >= 2800:
+if color_management_defauts_render_speed_up:
 
     if bpy.context.scene.view_settings.view_transform != 'Standard':
         blendfile_override_setting += "    bpy.context.scene.view_settings.view_transform = 'Standard'\n"
@@ -759,19 +752,18 @@ bypass_huffyuv_and_raw_avi_warnings = True ) \n\n" + 80 * "#" +"\n\n Press \
             print("Exiting Script...")
             exit()
 
-    if blender_ver >= 2790:
-        #----[ DETECT CODECS THAT DON'T SUPPORT CONSTANT RATE FACTOR ]
-        if blender_video_codec != "H264" and blender_video_codec != "MPEG4" and blender_video_codec != "WEBM":
-            if blender_constant_rate_factor != "NONE":
-                subprocess.call(clr_cmd, shell=True)
-                print(80 * "#")
-                print("\n Please reopen your .blend file, temporarily switch to\
- H264 Codec. Select 'None'\n from 'Output Quality', then reselect the non-H264 \
+    #----[ DETECT CODECS THAT DON'T SUPPORT CONSTANT RATE FACTOR ]
+    if blender_video_codec != "H264" and blender_video_codec != "MPEG4" and blender_video_codec != "WEBM":
+        if blender_constant_rate_factor != "NONE":
+            subprocess.call(clr_cmd, shell=True)
+            print(80 * "#")
+            print("\n Please reopen your .blend file, temporarily switch to\
+H264 Codec. Select 'None'\n from 'Output Quality', then reselect the non-H264 \
 codec that you want to use.\n You will need to set the Constant Video Bitrate \
 settings as well.\n Save and rerun the script. \n (Only H264 supports the \
 Constant Quality Settings; so you need to force \n Constant Bitrate instead.)\n")
-                print(80 * "#")
-                exit()
+            print(80 * "#")
+            exit()
 
 #----[ DETECT IF FRAMESEVER IS SET ]
 if blender_file_format == "FRAMESERVER":
@@ -822,12 +814,12 @@ if display_script_settings_banner:
     else:
         print(" (Show Render Status [OFF] (faster))\n")
 
-    if color_management_defauts_render_speed_up and blender_ver >= 2800:
+    if color_management_defauts_render_speed_up:
         print("| Color Mananagement Speedup Override is ON.\
  This sets \"View Transform\" \n| and \"Look\" to 2.7X Defaults\
  -- It's 3X faster (Script Line 205)\n")          
 
-    if show_cpu_core_lowram_notice and blender_ver >= 2790:
+    if show_cpu_core_lowram_notice:
         print("| For best render time, each Core needs 1.6GB to 3GB RAM. Reserv\
 e more CPU |\n| Cores if you experience severe slowdown due to Low\
  RAM. (Script Line 141)|\n")
@@ -868,91 +860,49 @@ the first Scene showing. (First Scene is usually named, \"Scene\")\n\n"
         + " - " + str(end_frame_is) + " ]" + " [ Color Mode: "\
         + blender_color_mode + " ]\n"
 
-    if blender_ver < 2790: # if we are using blender 2.78c or lower display
-        if not blender_image_sequence:
-            hide_codec = False
+    if not blender_image_sequence:
+        hide_codec = False
 
-            if blender_file_format in ("AVI_JPEG","AVI_RAW"):
-               print_banner += "  VIDEO: [ " + blender_file_format
-               hide_codec = True 
-            elif blender_vid_format == "QUICKTIME":
-                print_banner += "  VIDEO: [ MOV"                               #  | Quicktime Format uses MOV container
+        if blender_file_format in ("AVI_JPEG","AVI_RAW"):
+           print_banner += "  VIDEO: [ " + blender_file_format
+           hide_codec = True
+        elif blender_vid_format == "QUICKTIME":
+            print_banner += "  VIDEO: [ MOV"                               #  | Quicktime Format uses MOV container
+        elif blender_vid_format == "H264":
+            print_banner += "  VIDEO: [ AVI"                               #  | H264 Format uses AVI container
+        else:
+            print_banner += "  VIDEO: [ " + blender_vid_format
+
+        if not hide_codec:
+            if blender_video_codec == "MPEG4":
+                print_banner += " ( DIVX ) ] [ "                           #  | DIVX oddly reports that it uses MPEG4 codec
+            elif blender_vid_format in ("MPEG1","MPEG2","FLASH","XVID", "DV"):
+                print_banner += " ] [ "                                    #  | Remove False Codec Reporting
             elif blender_vid_format == "H264":
-                print_banner += "  VIDEO: [ AVI"                               #  | H264 Format uses AVI container
+                print_banner += " (H264) ] [ "
             else:
-                print_banner += "  VIDEO: [ " + blender_vid_format
-        
-            if not hide_codec:
-                if blender_video_codec == "MPEG4":
-                    print_banner += " ( DIVX ) ] [ "                           #  | DIVX oddly reports that it uses MPEG4 codec
-                elif blender_vid_format in ("MPEG1","MPEG2","FLASH","XVID", "DV"):
-                    print_banner += " ] [ "                                    #  | Remove False Codec Reporting
-                elif blender_vid_format == "H264":
-                    print_banner += " (H264) ] [ " 
-                else:
-                    print_banner += " ( " + blender_video_codec + " ) ] [ "
-            else:
-                print_banner += " ] [ "                                        #  | This close the AVI_JPEG and AVI_RAW settings
+                print_banner += " ( " + blender_video_codec + " ) ] [ "
+        else:
+            print_banner += " ] [ "                                        #  | This close the AVI_JPEG and AVI_RAW settings
 
-            print_banner += str(blender_x_times_res_percent) + " x "\
-            + str(blender_y_times_res_percent) + " ]"
-            print_banner += " [ " + str(the_framerate_float)\
-            + " FPS ] [ GOP " + str(blender_gop) + " ]\n"
+        print_banner += str(blender_x_times_res_percent) + " x "\
+        + str(blender_y_times_res_percent) + " ]"
+        print_banner += " [ " + str(the_framerate_float)\
+        + " FPS ] [ GOP " + str(blender_gop) + " ]\n"
 
-            if blender_use_lossless_output and blender_video_codec == 'H264':
-                print_banner += "          [ Lossless ] "
-            else:
+        if blender_use_lossless_output and blender_video_codec == 'H264':
+            print_banner += "          [ Lossless ] "
+        else:
+            if use_constant_bitrate:
                 print_banner += "          [ Bitrate: "\
                 + str(blender_video_bitrate) + " kb/s ] "
+            else:
+                print_banner += "        [ Quality: "\
+                + str(blender_constant_rate_factor) + " ("+ blender_ffmpeg_preset +")] "
 
             print_banner += "[ Frames: " + str(start_frame_is) + " - "\
             + str(end_frame_is) + " ]" + " [ Color Mode: "\
             + blender_color_mode + " ]\n"
-
-    else: # if we are using 2.79 or higher display the following
-        if not blender_image_sequence:
-            hide_codec = False
-       
-            if blender_file_format in ("AVI_JPEG","AVI_RAW"):
-               print_banner += "  VIDEO: [ " + blender_file_format
-               hide_codec = True 
-            elif blender_vid_format == "QUICKTIME":
-                print_banner += "  VIDEO: [ MOV"                               #  | Quicktime Format uses MOV container
-            elif blender_vid_format == "H264":
-                print_banner += "  VIDEO: [ AVI"                               #  | H264 Format uses AVI container
-            else:
-                print_banner += "  VIDEO: [ " + blender_vid_format
-        
-            if not hide_codec:
-                if blender_video_codec == "MPEG4":
-                    print_banner += " ( DIVX ) ] [ "                           #  | DIVX oddly reports that it uses MPEG4 codec
-                elif blender_vid_format in ("MPEG1","MPEG2","FLASH","XVID", "DV"):
-                    print_banner += " ] [ "                                    #  | Remove False Codec Reporting
-                elif blender_vid_format == "H264":
-                    print_banner += " (H264) ] [ " 
-                else:
-                    print_banner += " ( " + blender_video_codec + " ) ] [ "
-            else:
-                print_banner += " ] [ "                                        #  | This close the AVI_JPEG and AVI_RAW settings
-
-            print_banner += str(blender_x_times_res_percent) + " x "\
-            + str(blender_y_times_res_percent) + " ]"
-            print_banner += " [ " + str(the_framerate_float)\
-            + " FPS ] [ GOP " + str(blender_gop) + " ]\n"
-
-            if blender_use_lossless_output and blender_video_codec == 'H264':
-                print_banner += "          [ Lossless ] "
-            else:
-                if use_constant_bitrate:
-                    print_banner += "          [ Bitrate: "\
-                    + str(blender_video_bitrate) + " kb/s ] "
-                else:
-                    print_banner += "        [ Quality: "\
-                    + str(blender_constant_rate_factor) + " ("+ blender_ffmpeg_preset +")] "
-            
-                print_banner += "[ Frames: " + str(start_frame_is) + " - "\
-                + str(end_frame_is) + " ]" + " [ Color Mode: "\
-                + blender_color_mode + " ]\n"
 
     if render_gif:
         print_banner += "\n  GIF RENDER is [ ON ]\n ([ "\
