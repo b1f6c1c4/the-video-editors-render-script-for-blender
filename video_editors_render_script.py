@@ -86,7 +86,6 @@ import multiprocessing
 import math
 import subprocess
 import re
-from pathlib import Path
 
 #----[ DETECT OPERATING SYSTEM ]
 my_platform = platform.system()
@@ -96,26 +95,32 @@ my_platform = platform.system()
 #>> > > ENTER FULL PATH TO BLENDER AND FFMPEG FOR YOUR OPERATING SYSTEM  < < <<#  |  OS Specific Shortcuts like ~ (tilde) don't work - enter full path.
 #______________________________________________________________________________
 
-if my_platform == "Windows": #SET MICROSOFT WINDOWS PATHS BELOW
-    blender_path = r"C:\Program Files\Blender Foundation\Blender\blender.exe"  #  | (leave "r" prefix) python doesn't like \ slashes
-    path_to_ffmpeg = r"C:\ffmpeg\bin\ffmpeg.exe"                               #  | (leave "r" prefix) python doesn't like \ slashes
+if True:
 
-elif my_platform == "Darwin": # APPLE OSX PATHS BELOW
-    blender_path = "/Applications/Blender/blender.app/Contents/MacOS/blender"
-    path_to_ffmpeg = "/Applications/ffmpeg"
+    if my_platform == "Windows": #SET MICROSOFT WINDOWS PATHS BELOW
+        blender_path = r"C:\Program Files\Blender Foundation\Blender\blender.exe"  #  | (leave "r" prefix) python doesn't like \ slashes
+        ffmpeg_path = r"C:\ffmpeg\bin\ffmpeg.exe"                               #  | (leave "r" prefix) python doesn't like \ slashes
 
-elif my_platform == "Linux": # GNU/LINUX PATHS BELOW
-    blender_path = "/usr/bin/blender"                                                   #  |  Set to path of blender
-    path_to_ffmpeg = "/usr/bin/ffmpeg"                                                  #  |  Set to path of ffmpeg
+    elif my_platform == "Darwin": # APPLE OSX PATHS BELOW
+        blender_path = "/Applications/Blender/blender.app/Contents/MacOS/blender"
+        ffmpeg_path = "/Applications/ffmpeg"
 
-else: # OTHER OPERATING SYSTEMS PATHS BELOW
-    blender_path = "blender"
-    path_to_ffmpeg = "ffmpeg"
+    else: # OTHER OPERATING SYSTEMS PATHS BELOW
+        blender_path = "blender"
+        ffmpeg_path = "ffmpeg"
 
 #______________________________________________________________________________
 #
 #                            USER PREFERRED SETTINGS
 #______________________________________________________________________________
+
+#----[ OUTPUT FILES ]
+full_root_filepath = os.path.dirname(bpy.data.filepath)
+stem_name = os.path.basename(bpy.data.filepath)
+output_audio_file = os.path.join(full_root_filepath, f"{stem_name}-audio")
+output_video_file = os.path.join(full_root_filepath, f"{stem_name}-video")
+output_gif_file = os.path.join(full_root_filepath, f"{stem_name}-output.gif")
+output_seq_dir = os.path.join(full_root_filepath, f"{stem_name}-seq")
 
 #--------------------------------------------------------------------#
 #----------------------[ SCRIPT SETTINGS BANNER ]--------------------#---------
@@ -125,6 +130,7 @@ display_script_settings_banner = True #(Default: True) [True or False]
 banner_wait_time = 15 # seconds (Default: 15)                                  #  | Number of seconds the script will display render settings before rendering starts.
 show_cpu_core_lowram_notice = False # (Default: False) [True or False]         #  | Display that we need 1.6GB to 3GB per CPU core available
 show_render_status = True # (Default: True) [True or False]                    #  | Display frame count (It is off by default because it may be slower.)
+
 #--------------------------------------------------------------------#
 #---------------------------[ CPU SETTINGS ]-------------------------#---------
 #--------------------------------------------------------------------#
@@ -151,6 +157,8 @@ auto_overwrite_files = True #(Default: True) [True or False]
 #--------------------------------------------------------------------#
 #----------------------[ AUDIO/VIDEO SETTINGS ]----------------------#---------
 #--------------------------------------------------------------------#
+
+separate_audio_video = True #(Default: True) [True or False]
 
 #----[ FFMPEG COMMAND LINE ARGUMENTS USED TO MUX FINAL VIDEO ]                 #  | e.g.: ffmpeg -i video.mp4 -i FullAudio.m4a [arg1] FinishedVideo.mp4 [arg2]
 post_full_audio = "-c:v copy -c:a copy -map 0:v:0 -map 1:a:0"                  #  | Essential arguments used to Mux Final Audio/Video (! DON'T CHANGE !)
@@ -262,47 +270,21 @@ if True:
 
 if True:
 
-    #----[ DETECT IF BLENDER AND FFMPEG PATHS ARE CORRECTLY CONFIGURED ]
-    my_file = Path(blender_path)
-    if not my_file.is_file():
-        print(80 * "#")
-        print("\n Blender program was not found. Please set the correct path to Blender in the\n render script.")
-        print("\n The render script is set to look for Blender at the following location:\n")
-        print(" " + blender_path + "\n")
-        print(80 * "#")
-        exit()
-    my_file = Path(path_to_ffmpeg)
-    if not my_file.is_file():
-        print(80 * "#")
-        print("\n FFmpeg program was not found. Please set the correct path to FFmpeg in the\n render script.")
-        print("\n The render script is set to look for FFmpeg at the following location:\n")
-        print(" " + path_to_ffmpeg + "\n")
-        print(80 * "#")
-        exit()
-
-    #----[ FIND THE PATH TO THIS SCRIPT ]
-    full_root_filepath = os.path.dirname(bpy.data.filepath)
+    #----[ SET SCRIPT DEFAULTS VARIABLES ]
+    blender_command = "" # (Default= "")
 
     #----[ GIVE TEMP FILE-FOLDERS NAMES ]
     working_dir_temp = os.path.abspath(tempfile.mkdtemp(prefix='render-script-'))
-    img_sequence_dir = os.path.abspath(os.path.join(full_root_filepath, "IMG_Sequence"))
 
-    #----[ SET SCRIPT DEFAULTS VARIABLES ]
-    blender_command = "" # (Default= "")
     path_to_av_source = os.path.join(working_dir_temp, "AV_Source")
-    path_to_other_files = os.path.join(working_dir_temp, "Other_Files")            #  | Look at "render." file in this folder to see the "secret sauce."
-
-    #----[ GIVE GIF CONVERSION FILES NAMES ]
-    final_gif_name = os.path.abspath(os.path.join(full_root_filepath, "final.gif"))
-    png_palette = os.path.abspath(os.path.join(path_to_av_source, "palette.png"))
-
-    #----[ GIVE TEMP FILES NAMES ]
+    png_palette = os.path.join(path_to_av_source, "palette.png")
     path_to_wav = os.path.join(path_to_av_source, "Full_Audio")
-    joined_video_no_audio = os.path.join(path_to_av_source, "Joined_Video")        # | extension TBD
-    the_audio_with_img_seq = os.path.join(full_root_filepath, "Finished_Audio")    # | extension TBD
-    joined_video_with_audio = os.path.join(full_root_filepath, "Finished_Video")   # | extension TBD
-    blendfile_override_setting_filename = os.path.join(path_to_other_files, "OverrideSettings.py")
+    joined_video_no_audio = os.path.join(path_to_av_source, "Joined_Video")
+
+    path_to_other_files = os.path.join(working_dir_temp, "Other_Files")            #  | Look at "render." file in this folder to see the "secret sauce."
+    settings_file = os.path.join(path_to_other_files, "OverrideSettings.py")
     concat_file = os.path.join(path_to_other_files, "Concat_Video_List.txt")
+    render_file = os.path.abspath(os.path.join(path_to_other_files, render_filename))
 
     #----[ PCM MIXDOWN SETTINGS (LOSSLESS) ]
     export_audio_container = "WAV" # (Default: "WAV")
@@ -329,6 +311,18 @@ if True:
         can_we_overwrite = " -y"
     else:
         can_we_overwrite = ""
+
+    #----[ DETECT IF BLENDER AND FFMPEG PATHS ARE CORRECTLY CONFIGURED ]
+    def verify_cmd(path, prog):
+        if shutil.which(path) is None:
+            print(80 * "#")
+            print(f"\n {prog} program was not found. Please set the correct path to {prog} in the\n render script.")
+            print("\n The render script is set to look for Blender at the following location:\n")
+            print(f" {path}\n")
+            print(80 * "#")
+            exit()
+    verify_cmd(blender_path, "Blender")
+    verify_cmd(ffmpeg_path, "FFmpeg")
 
 #______________________________________________________________________________
 #
@@ -590,7 +584,7 @@ if True:
         exit()
 
     #----[ CHECK FOR PATH THAT USE ' IN THEM ]
-    if "'" in full_root_filepath:
+    if "'" in full_root_filepath or "'" in path_to_av_source or "'" in output_video_file:
         print(80 * "#")
         print("\n\n ! APOSTROPHE ALERT !\n\n Your .blend filepath has an APOSTROPHE in it. Please remove the "
               "APOSTROPHE\n from your path name and never use an APOSTROPHE in a file or folder\n name ever again. "
@@ -856,15 +850,11 @@ if display_script_settings_banner:
 if True:
 
     #----[ CREATE FOLDERS TO STORE GENERATED TEMP FILES ]
-
-    if not os.path.exists(path_to_av_source):
-        os.makedirs(path_to_av_source)
-
-    if not os.path.exists(path_to_other_files):
-        os.makedirs(path_to_other_files)
+    os.makedirs(path_to_av_source)
+    os.makedirs(path_to_other_files)
 
     #----[ CREATE .BLEND OVERRIDE FILE ]
-    with open(blendfile_override_setting_filename, "w+") as f:
+    with open(settings_file, "w+") as f:
         f.write(blendfile_override_setting)
 
 #_______________________________________________________________________________
@@ -921,7 +911,7 @@ if True:
         )
         if blender_audio_volume != 1.0:                                            #  | If Project Volume is changed, adjust it.
             move_wav_from = f"{path_to_wav}_newVolume{export_audio_file_extension}"
-            fix_volume = f'"{path_to_ffmpeg}" -i "{path_to_save_pcm}" ' \
+            fix_volume = f'"{ffmpeg_path}" -i "{path_to_save_pcm}" ' \
                          + f'-af "volume={blender_audio_volume}" "{move_wav_from}"'
             subprocess.call(fix_volume, shell=True)
             os.remove(path_to_save_pcm)                                            #  | Delete the orginal WAV file
@@ -935,10 +925,12 @@ if True:
         else:
             hold_audio_codec = blender_audio_codec.lower()                         # | Used for audio extension of all but aac
 
-        if user_wants_to_convert_audio:
+        if not user_wants_to_convert_audio:
+            path_to_the_audio = path_to_save_pcm
+        else:
 
             #----[ CREATE LOSSY AUDIO COMMAND STRING ]
-            wav_to_compressed_audio = f'"{path_to_ffmpeg}"{can_we_overwrite} -i "{path_to_wav}{export_audio_file_extension}"'
+            wav_to_compressed_audio = f'"{ffmpeg_path}"{can_we_overwrite} -i "{path_to_save_pcm}"'
             if use_libfdk_acc:                                                         #  | If libfdk_acc is available it can be used here.
                 wav_to_compressed_audio += " -c:a libfdk_acc "
             else:
@@ -974,14 +966,14 @@ if True:
                     blender_audio_bitrate = max_audio_bitrate
             wav_to_compressed_audio += f" -b:a {blender_audio_bitrate}k"
 
-            path_to_compressed_audio = path_to_wav + "." # add extension later.
+            path_to_the_audio = path_to_wav + "." # add extension later.
             if blender_audio_codec == "AAC":                                           #  | Make acception for AAC codec
-                path_to_compressed_audio += "m4a"                                      #  | Use .m4a extension instead of .aac
+                path_to_the_audio += "m4a"                                      #  | Use .m4a extension instead of .aac
             elif blender_audio_codec == "VORBIS":                                      #  | Vorbis needs to use ogg container
-                path_to_compressed_audio += "ogg"
+                path_to_the_audio += "ogg"
             else:
-                path_to_compressed_audio += blender_audio_codec.lower()
-            wav_to_compressed_audio += f' "{path_to_compressed_audio}"'
+                path_to_the_audio += blender_audio_codec.lower()
+            wav_to_compressed_audio += f' "{path_to_the_audio}"'
 
             print(f' Converting Audio using {blender_audio_codec} codec using bitrate of {blender_audio_bitrate}k')
 
@@ -991,7 +983,7 @@ if True:
             audio_conversion_time_end = time.time()                                #  | End audio conversion timer
 
             #----[ MAKE SURE THAT A LOSSY FILE WAS CREATED ]
-            if not os.path.isfile(path_to_compressed_audio):
+            if not os.path.isfile(path_to_the_audio):
                 print(" There was an error compressing your audio. Please change your render settings.")
                 exit()
 
@@ -1037,10 +1029,6 @@ if True:
     #----[ SET NUMBER OF FRAMES THAT WILL BE RENDERED ON EACH ENABLED CORE ]
     portion_of_frames_per_core = math.ceil(total_frames / cores_enabled)
 
-    #----[ GET THE FILENAME OF YOUR CUSTOM BLEND FILE ]
-    filename = bpy.path.basename(bpy.context.blend_data.filepath)
-    filename_and_path = os.path.join(full_root_filepath, filename)
-
     #----[ INITIAL LOOP VARIABLES ]
     next_core = 1
     new_start_frame_number = start_frame_is
@@ -1054,8 +1042,8 @@ if True:
             blender_command += fr'9>\"%lock%{next_core}\" '  #  | only Windows needs to create a lock file for each blender job.
 
         blender_command += \
-            f'"{blender_path}" -b "{filename_and_path}"' \
-            + f' -P "{blendfile_override_setting_filename}"' \
+            f'"{blender_path}" -b "{os.path.abspath(bpy.context.blend_data.filepath)}"' \
+            + f' -P "{settings_file}"' \
             + f' -E {blender_render_engine}' \
             + f' -s {new_start_frame_number:d}' \
             + f' -e {new_end_frame_number:d}'
@@ -1064,7 +1052,7 @@ if True:
             fn = f'{next_core:d}{file_extension}'
             blender_command += f' -o "{os.path.join(path_to_av_source, fn)}" -a{ampersand}\n'
         else:
-            blender_command += f' -o "{img_sequence_dir}//" -F {blender_file_format} -x 1 -a{ampersand}\n'
+            blender_command += f' -o "{output_seq_dir}//" -F {blender_file_format} -x 1 -a{ampersand}\n'
 
         new_start_frame_number = new_end_frame_number + 1
         new_end_frame_number = new_start_frame_number + portion_of_frames_per_core
@@ -1118,20 +1106,15 @@ if not blender_image_sequence:
 
     #----[ CREATE COMMAND STRING FOR VIDEO CONCATENATION ]
     full_command_string += \
-        f'"{path_to_ffmpeg}" -f concat -safe 0 -i "{concat_file}" ' + \
+        f'"{ffmpeg_path}" -f concat -safe 0 -i "{concat_file}" ' + \
         f'-c copy "{joined_video_no_audio}{file_extension}"{can_we_overwrite}\n'
 
     #----[ CREATE A STRING THAT ADDS AUDIO TO VIDEO ]
-    if blender_audio_codec != "NONE":
+    if blender_audio_codec != "NONE" and not separate_audio_video:
         full_command_string += \
-            f'"{path_to_ffmpeg}"{can_we_overwrite} -i "{joined_video_no_audio}{file_extension}"{can_we_overwrite}'
-
-        if user_wants_to_convert_audio:
-            full_command_string += f' -i "{path_to_compressed_audio}"'
-        else:
-            full_command_string += f' -i "{path_to_wav}{export_audio_file_extension}"'
-
-        full_command_string += f' {post_full_audio} "{joined_video_with_audio}{file_extension}" {post_finished_video}\n'
+            f'"{ffmpeg_path}"{can_we_overwrite} -i "{joined_video_no_audio}{file_extension}"{can_we_overwrite}' \
+            + f' -i "{path_to_the_audio}"' \
+            + f' {post_full_audio} "{output_video_file}{file_extension}" {post_finished_video}\n'
 
 #______________________________________________________________________________
 #
@@ -1140,15 +1123,15 @@ if not blender_image_sequence:
 
 if not blender_image_sequence and render_gif:
     full_command_string += \
-        f'"{path_to_ffmpeg}" -v warning -i "{joined_video_no_audio}{file_extension}" ' \
+        f'"{ffmpeg_path}" -v warning -i "{joined_video_no_audio}{file_extension}" ' \
         + f'-vf "fps={gif_framerate},scale={gif_scale}:-1:flags={the_scaler},palettegen=stats_mode={stats_mode}" ' \
         + f'-y "{png_palette}"\n'
 
     full_command_string += \
-        f'"{path_to_ffmpeg}" -v warning -i "{joined_video_no_audio}{file_extension}" ' \
+        f'"{ffmpeg_path}" -v warning -i "{joined_video_no_audio}{file_extension}" ' \
         + f'-i "{png_palette}" ' \
         + f'-lavfi "fps={gif_framerate},scale={gif_scale}:-1:flags={the_scaler} [x]; [x][1:v] paletteuse=dither={dither_options}" ' \
-        + f'-y "{final_gif_name}"\n'
+        + f'-y "{output_gif_file}"\n'
 
 #______________________________________________________________________________
 #
@@ -1157,15 +1140,12 @@ if not blender_image_sequence and render_gif:
 
 if True:
 
-    #----[ SET PATH TO THE RENDER FILE ]
-    render_filename_location = os.path.abspath(os.path.join(path_to_other_files, render_filename))
-
     #----[ WRITE COMMAND STRINGS TO FILE ]
-    with open(render_filename_location, "w+") as f:
+    with open(render_file, "w+") as f:
         f.write(full_command_string)
 
     #----[ CREATE EXECUTABLE RENDER FILE COMMAND ]
-    commands_to_execute = f'{use_bash}"{render_filename_location}"'
+    commands_to_execute = f'{use_bash}"{render_file}"'
     print(commands_to_execute)
 
     #----[ EXECUTE THE RENDER COMMAND FILE ]
@@ -1219,18 +1199,15 @@ if True:
 if True:
 
     #----[ IF YOU HAVE NO AUDIO, NO NEED TO MUX, JUST MOVE VIDEO UP A DIRECTORY ]
-    if blender_audio_codec == "NONE" and not render_gif and not blender_image_sequence:
+    if (blender_audio_codec == "NONE" or separate_audio_video) and not render_gif and not blender_image_sequence:
         shutil.move(
             joined_video_no_audio + file_extension,
-            joined_video_with_audio + file_extension,
+            output_video_file + file_extension,
         )
 
     #----[ IF IMAGE SEQUENCE EXISTS, MOVE ANY WANTED AUDIO UP A DIRECTORY ]
-    if blender_image_sequence and blender_audio_codec != "NONE":
-        shutil.move(
-            path_to_wav + export_audio_file_extension if not user_wants_to_convert_audio else path_to_compressed_audio,
-            the_audio_with_img_seq + export_audio_file_extension,
-        )
+    if (blender_image_sequence or separate_audio_video) and blender_audio_codec != "NONE":
+        shutil.move(path_to_the_audio, output_audio_file + export_audio_file_extension)
 
     #----[ DELETE WORKING DIRECTORY ]
     if auto_delete_temp_files:
