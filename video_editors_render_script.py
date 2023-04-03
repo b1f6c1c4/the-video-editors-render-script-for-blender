@@ -98,24 +98,18 @@ my_platform = platform.system()
 if my_platform == "Windows": #SET MICROSOFT WINDOWS PATHS BELOW
     blender_path = r"C:\Program Files\Blender Foundation\Blender\blender.exe"  #  | (leave "r" prefix) python doesn't like \ slashes
     path_to_ffmpeg = r"C:\ffmpeg\bin\ffmpeg.exe"                               #  | (leave "r" prefix) python doesn't like \ slashes
-    assumed_blend_filename = "1.blend"                                         #  | Save as... "1.blend" (Script looks for 1.blend file in script directory.)
 
 elif my_platform == "Darwin": # APPLE OSX PATHS BELOW
     blender_path = "/Applications/Blender/blender.app/Contents/MacOS/blender"
     path_to_ffmpeg = "/Applications/ffmpeg"
-    assumed_blend_filename = "1.blend"                                         #  |  Save as... "1.blend" (Script looks for 1.blend file in script directory.)
 
 elif my_platform == "Linux": # GNU/LINUX PATHS BELOW
     blender_path = "/usr/bin/blender"                                                   #  |  Set to path of blender
     path_to_ffmpeg = "/usr/bin/ffmpeg"                                                  #  |  Set to path of ffmpeg
-    assumed_blend_filename = "1.blend"                                         #  |  Save as... "1.blend" (Script looks for 1.blend file in directory.)
-    terminal_cmd = "gnome-terminal -e"                                         #  |  Terminals: gnome-terminal -e, konsole -e, xterm -e, guake -e, terminator -e
 
 else: # OTHER OPERATING SYSTEMS PATHS BELOW
     blender_path = "blender"
     path_to_ffmpeg = "ffmpeg"
-    assumed_blend_filename = "1.blend"                                         #  |  Save as... "1.blend" (Script looks for 1.blend file in script directory.)
-    terminal_cmd = "gnome-terminal -e"                                         #  |  Terminals: gnome-terminal -e, konsole -e, xterm -e, guake -e, terminator -e
 
 #______________________________________________________________________________
 #
@@ -238,7 +232,6 @@ if my_platform == "Windows": # Windows 10
     clr_cmd = "cls"                                                            #  | Windows Clear command
     name_of_script += "\n" + r"cmd /k"                                         #  | prevents cmd window from closing
     make_script_executable = ""
-    terminal_cmd = ""
 
 elif my_platform == "Darwin": # APPLE OSX
     start_blender = start_ffmpeg = ""                                          #  | Only Windows uses this - Set to empty
@@ -248,7 +241,6 @@ elif my_platform == "Darwin": # APPLE OSX
     use_bash = "bash "                                                         #  | We run a bash script (render.sh)
     clr_cmd = "clear"
     make_script_executable = "chmod a+x"                                       #  | We need to make the file executable
-    terminal_cmd = ""
 
 elif my_platform == "Linux": # GNU/LINUX
     start_blender = start_ffmpeg = ""                                          #  | Only Windows uses this - Set to empty
@@ -302,23 +294,21 @@ if True:
     working_dir_temp = os.path.abspath(os.path.join(full_root_filepath, "Script_Working_Folder"))
     img_sequence_dir = os.path.abspath(os.path.join(full_root_filepath, "IMG_Sequence"))
 
-    #----[ GIVE TEMP FILES NAMES ]
-    wav_filename = "Full_Audio"
-    joined_video = "Joined_Video"
-    audio_and_video = "Finished_Video"
-    concat = "Concat_Video_List.txt"
-
-    #----[ GIVE GIF CONVERSION FILES NAMES ]
-    final_gif_name = "final.gif"
-    png_pallette = "pallette.png"
-
-    #----[ SET NAME OF .BLEND OVERRIDE FILE ]
-    blendfile_override_setting_filename = "OverrideSettings.py"
-
     #----[ SET SCRIPT DEFAULTS VARIABLES ]
     blender_command = full_command_string = "" # (Default= "")
     path_to_av_source = os.path.join(working_dir_temp, "AV_Source")
     path_to_other_files = os.path.join(working_dir_temp, "Other_Files")            #  | Look at "render." file in this folder to see the "secret sauce."
+
+    #----[ GIVE GIF CONVERSION FILES NAMES ]
+    final_gif_name = os.path.abspath(os.path.join(full_root_filepath, "final.gif"))
+    png_palette = os.path.abspath(os.path.join(path_to_av_source, "palette.png"))
+
+    #----[ GIVE TEMP FILES NAMES ]
+    wav_filename = "Full_Audio"
+    joined_video_no_audio = os.path.join(path_to_av_source, "Joined_Video")        # | extension TBD
+    joined_video_with_audio = os.path.join(full_root_filepath, "Finished_Video")   # | extension TBD
+    blendfile_override_setting_filename = os.path.join(path_to_other_files, "OverrideSettings.py")
+    concat_file = os.path.join(path_to_other_files, "Concat_Video_List.txt")
 
     #----[ PCM MIXDOWN SETTINGS (LOSSLESS) ]
     export_audio_container = "WAV" # (Default: "WAV")
@@ -498,10 +488,10 @@ if True:
             if export_audio_format == "":
                 export_audio_format = try_sample_format
         elif try_sample_format == "FLOAT":
-            if export_audio_format =="":
+            if export_audio_format == "":
                 export_audio_format = "F32"
         elif try_sample_format == "DOUBLE":
-            if export_audio_format =="":
+            if export_audio_format == "":
                 export_audio_format = "F64"
 
     #----[ Switch Color Management settings to Match 2.79 defaults]
@@ -902,7 +892,7 @@ if True:
         os.makedirs(path_to_other_files)
 
     #----[ CREATE .BLEND OVERRIDE FILE ]
-    with open(os.path.join(path_to_other_files, blendfile_override_setting_filename), "w+") as f:
+    with open(blendfile_override_setting_filename, "w+") as f:
         f.write(blendfile_override_setting)
 
 #_______________________________________________________________________________
@@ -972,12 +962,10 @@ if True:
             fix_volume = "\"" + path_to_ffmpeg + "\"" + " -i " + "\""\
             + path_to_save_pcm + "\"" + " -af "\
             + "\"volume=" + str(blender_audio_volume) + "\""\
-            + " " + "\"" + path_to_av_source\
-            + wav_filename + "_newVolume" + export_audio_file_extension + "\""
+            + " " + "\"" + path_to_av_source + wav_filename + "_newVolume" + export_audio_file_extension + "\""
             subprocess.call(fix_volume, shell=True) # TODO: b1f6c1c4
 
-            move_wav_from = path_to_av_source\
-            + wav_filename + "_newVolume" + export_audio_file_extension # TODO: b1f6c1c4
+            move_wav_from = path_to_av_source + wav_filename + "_newVolume" + export_audio_file_extension # TODO: b1f6c1c4
 
             move_wav_to = path_to_save_pcm
 
@@ -1120,7 +1108,7 @@ if True:
 
         blender_command += \
             f'"{blender_path}" -b "{filename_and_path}"' \
-            + f' -P "{os.path.join(path_to_other_files, blendfile_override_setting_filename)}"' \
+            + f' -P "{blendfile_override_setting_filename}"' \
             + f' -E {blender_render_engine}' \
             + f' -s {new_start_frame_number:d}' \
             + f' -e {new_end_frame_number:d}'
@@ -1164,12 +1152,13 @@ if True:
 
         blender_command = wait_blender_routine
 
-    #=============================================================================#
-    #                    IF IMAGE SEQUENCE, SKIP TO FINAL RENDER                  #
-    #=============================================================================#
+#=============================================================================#
+#                    IF IMAGE SEQUENCE, SKIP TO FINAL RENDER                  #
+#=============================================================================#
 
-    if blender_image_sequence:
-        full_command_string = blender_command + wait_here
+if blender_image_sequence:
+    full_command_string = blender_command + wait_here
+
 #______________________________________________________________________________
 #
 #                              VIDEO CONCATENATION
@@ -1177,13 +1166,8 @@ if True:
 
 if not blender_image_sequence:
 
-    #----[ SET VARIABLES FOR CONCATENATION ]
-    joined_video_no_audio = os.path.join(path_to_av_source, joined_video)
-
     num_vids = 1
     vid_file = ""
-
-    concat_file = os.path.join(path_to_other_files, concat)
 
     while num_vids <= cores_enabled:
         fn = f'{num_vids}{file_extension}'
@@ -1205,9 +1189,6 @@ if not blender_image_sequence:
     #                  MUX AUDIO AND VIDEO INTO ONE MEDIA FILE
     #__________________________________________________________________________
 
-    #----[ SET PATH TO FINISHED VIDEO FILE WITH AUDIO ]
-    joined_video_with_audio = os.path.join(full_root_filepath, audio_and_video)
-
     #----[ CREATE A STRING THAT ADDS AUDIO TO VIDEO ]
     if blender_audio_codec != "NONE":
         full_command_string += \
@@ -1227,15 +1208,15 @@ if not blender_image_sequence:
 
     if render_gif:
         full_command_string += \
-            f'"{path_to_ffmpeg}" -v warning -i "{os.path.join(joined_video_no_audio, file_extension)}" ' \
+            f'"{path_to_ffmpeg}" -v warning -i "{joined_video_no_audio}{file_extension}" ' \
             + f'-vf "fps={str(gif_framerate)},scale={str(gif_scale)}:-1:flags={the_scaler},palettegen=stats_mode={stats_mode}" ' \
-            + f'-y "{os.path.join(path_to_av_source, png_pallette)}"\n'
+            + f'-y "{png_palette}"\n'
 
         full_command_string += \
-            f'"{path_to_ffmpeg}" -v warning -i "{os.path.join(joined_video_no_audio, file_extension)}" ' \
-            + f'-i "{os.path.join(path_to_av_source, png_pallette)}" ' \
+            f'"{path_to_ffmpeg}" -v warning -i "{joined_video_no_audio}{file_extension}" ' \
+            + f'-i "{png_palette}" ' \
             + f'-lavfi "fps={str(gif_framerate)},scale={str(gif_scale)}:-1:flags={the_scaler} [x]; [x][1:v] paletteuse=dither={dither_options}" ' \
-            + f'-y "{os.path.join(full_root_filepath, final_gif_name)}"\n'
+            + f'-y "{final_gif_name}"\n'
 
 #______________________________________________________________________________
 #
@@ -1292,8 +1273,7 @@ if True:
     #----[ IF IMAGE SEQUENCE EXISTS, MOVE ANY WANTED AUDIO UP A DIRECTORY ]
     if blender_image_sequence and blender_audio_codec != "NONE":
         if not user_wants_to_convert_audio:
-            move_from = path_to_av_source + wav_filename\
-            + export_audio_file_extension
+            move_from = path_to_av_source + wav_filename + export_audio_file_extension
             move_to = full_root_filepath + wav_filename + "_for_"\
             + img_sequence_dir + export_audio_file_extension # TODO: b1f6c1c4
             shutil.move(move_from, move_to)
