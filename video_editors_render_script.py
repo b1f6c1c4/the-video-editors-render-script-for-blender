@@ -133,7 +133,7 @@ else: # OTHER OPERATING SYSTEMS PATHS BELOW
 display_script_settings_banner = True #(Default: True) [True or False]
 banner_wait_time = 15 # seconds (Default: 15)                                  #  | Number of seconds the script will display render settings before rendering starts.
 show_cpu_core_lowram_notice = False # (Default: False) [True or False]         #  | Display that we need 1.6GB to 3GB per CPU core available
-show_render_status = False # (Default: False) [True or False]                   #  | Display frame count (It is off by default because it may be slower.) 
+show_render_status = False # (Default: False) [True or False]                   #  | Display frame count (It is off by default because it may be slower.)
 #--------------------------------------------------------------------#
 #---------------------------[ CPU SETTINGS ]-------------------------#---------
 #--------------------------------------------------------------------#
@@ -202,7 +202,7 @@ bypass_huffyuv_and_raw_avi_warnings = False #(Default: False ) [True or False] #
 #----[ PERMIT A 3D SCENE STRIP IN VSE ] (Experimental/ Glitchy)                #  | Scene strips are unreliable when rendering with Multiple blender instances
 permit_scene_strips = False #(Default: False) [True or False]                  #  | that have keyframed viewport objects. Instead, Render out keyframed
                                                                                #  | objects as an image sequence, import them into VSE, then use this script.
- #----[ COLOR MANAGEMENT SPEEDUP / OVERRIDE )                                  #  
+ #----[ COLOR MANAGEMENT SPEEDUP / OVERRIDE )                                  #
 color_management_defauts_render_speed_up = False #(Default: False) [True or False]  | By default, Blender 2.8 uses Color Management settings that triple render time.
                                                                                #  | This Sets 'View Transform'='Standard' and 'Look'='None' (Which are Blender 2.79 defaults)
   #------------------------------------------------------------------#
@@ -327,8 +327,8 @@ blendfile_override_setting_filename = "OverrideSettings.py"
 
 #----[ SET SCRIPT DEFAULTS VARIABLES ]
 blender_command = full_command_string = "" # (Default= "")
-path_to_av_source = os.path.join(working_dir_temp, "AV_Source") + '/'
-path_to_other_files = os.path.join(working_dir_temp, "Other_Files") + '/' #  | Look at "render." file in this folder to see the "secret sauce."
+path_to_av_source = os.path.join(working_dir_temp, "AV_Source")
+path_to_other_files = os.path.join(working_dir_temp, "Other_Files")            #  | Look at "render." file in this folder to see the "secret sauce."
 
 #----[ PCM MIXDOWN SETTINGS (LOSSLESS) ]
 export_audio_container = "WAV" # (Default: "WAV")
@@ -523,10 +523,10 @@ if color_management_defauts_render_speed_up:
 
     if bpy.context.scene.view_settings.view_transform != 'Standard':
         blendfile_override_setting += "    bpy.context.scene.view_settings.view_transform = 'Standard'\n"
-        
+
     if bpy.context.scene.view_settings.look != 'None':
         blendfile_override_setting += "    bpy.context.scene.view_settings.look = 'None'\n"
-        
+
 #______________________________________________________________________________
 #
 #                      CHECK FOR MINIMUM CPU REQUIREMENTS
@@ -609,8 +609,8 @@ and selected an\n Image Sequence format of " + blender_file_format + ". These \
 options are mutually exclusive.\n Either Change to a movie format to render \
 an animated gif, or set\n render_gif = False. \n\n")
         print(80 * "#")
-        exit()                                                                 
-else: 
+        exit()
+else:
     blender_image_sequence = False
 
 #______________________________________________________________________________
@@ -673,7 +673,7 @@ attached to viewport objects\n lose sync when rendering with this script. \
         exit()
 
 #----[ CHECK IF LOSSLESS VIDEO CHECKBOX IS MARKED WHEN WE DON'T WANT IT ]
-if blender_use_lossless_output and blender_video_codec != 'H264':              #  | Blender leaves the lossless output checkbox set even after switching codecs. 
+if blender_use_lossless_output and blender_video_codec != 'H264':              #  | Blender leaves the lossless output checkbox set even after switching codecs.
     subprocess.call(clr_cmd, shell=True)
     print(80 * "#")
     print("\n\n Please open your .blend file, go to the encoding \
@@ -780,7 +780,7 @@ OUTPUT' option \n that is located in the encoding section.\n\n")
 #                             SCRIPT SETTINGS BANNER                           #  | Messy because Blender won't unmark settings, it hides and ignores.
 #______________________________________________________________________________
 
-#----[ DISPLAY THESE SETTINGS IN THE BANNER BEFORE RENDERING ]                 
+#----[ DISPLAY THESE SETTINGS IN THE BANNER BEFORE RENDERING ]
 if display_script_settings_banner:
     subprocess.call(clr_cmd, shell=True)
     if my_platform == "Windows":
@@ -809,7 +809,7 @@ if display_script_settings_banner:
     if color_management_defauts_render_speed_up:
         print("| Color Mananagement Speedup Override is ON.\
  This sets \"View Transform\" \n| and \"Look\" to 2.7X Defaults\
- -- It's 3X faster (Script Line 205)\n")          
+ -- It's 3X faster (Script Line 205)\n")
 
     if show_cpu_core_lowram_notice:
         print("| For best render time, each Core needs 1.6GB to 3GB RAM. Reserv\
@@ -949,52 +949,37 @@ if not os.path.exists(path_to_other_files):
 
 #----[ CREATE RENDER SHORTCUT ]                                                #  | After running script once, clickable file is generated to run script again.
 
-with open(full_root_filepath + click_me, "w+") as f:
+with open(os.path.join(full_root_filepath, click_me), "w+") as f:
     if my_platform == "Windows":
-        f.write("echo off\n" + "\"" + blender_path + "\""\
-        + " -b " + assumed_blend_filename + " -P " + name_of_script)
+        f.write(f'echo off\n"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}')
 
-    elif my_platform =="Darwin":
-        f.write('#!/bin/bash\n'\
-        'cd "$(dirname \"$BASH_SOURCE\")" || {\n'\
-        + 'echo "Error getting script directory" >&2\n'\
-        + 'exit 1\n'\
-        + '}\n'
-        + "\"" + blender_path + "\"" + " -b "\
-        + assumed_blend_filename + " -P " + name_of_script)
+    elif my_platform == "Darwin":
+        f.write('#!/bin/bash\n' \
+                + 'cd "$(dirname \"$BASH_SOURCE\")" || {\n' \
+                + 'echo "Error getting script directory" >&2\n' \
+                + 'exit 1\n' \
+                + '}\n'
+                + f'"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}')
 
     elif my_platform == "Linux":
-        f.write('#!/bin/bash\n'\
-        'cd "$(dirname \"$BASH_SOURCE\")" || {\n'\
-        + 'echo "Error getting script directory" >&2\n'\
-        + 'exit 1\n'\
-        + '}\n'
-        + terminal_cmd + " \"bash -c '" + "\"" + blender_path + "\""\
-        + " -b " + assumed_blend_filename + " -P " + name_of_script + "; \
-exec /bin/bash -i'\"\n\n" + "###############  ENABLE CLICKABLE / EXECUTABLE \
-SCRIPTS  ###############\n# If this script opened in a text editor rather than\
- executing\n# inside a terminal window, it's because your file browser needs\n\
-# to be set to allow executing scripts. In File Browsers like\n\
-# Nautilus, you can find this setting in the Preferences->Behavior Tab")
+        f.write('#!/bin/bash\n' \
+                + 'cd "$(dirname \"$BASH_SOURCE\")" || {\n' \
+                + 'echo "Error getting script directory" >&2\n' \
+                + 'exit 1\n' \
+                + '}\n'
+                + f'{terminal_cmd} "bash -c \'"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}"\'')
 
     else:
-        f.write('#!/bin/bash\n'\
-        'cd "$(dirname \"$BASH_SOURCE\")" || {\n'\
-        + 'echo "Error getting script directory" >&2\n'\
-        + 'exit 1\n'\
-        + '}\n'
-        + terminal_cmd + " \"bash -c '" + "\"" + blender_path + "\""\
-        + " -b " + assumed_blend_filename + " -P " + name_of_script + "; \
-exec /bin/bash -i'\"\n\n" + "###############  ENABLE CLICKABLE / EXECUTABLE \
-SCRIPTS  ###############\n# If this script opened in a text editor rather than\
- executing\n# inside a terminal window, it's because your file browser needs\n\
-# to be set to allow executing scripts. In File Browsers like\n\
-# Nautilus, you can find this setting in the Preferences->Behavior Tab")
+        f.write('#!/bin/bash\n' \
+                + 'cd "$(dirname \"$BASH_SOURCE\")" || {\n' \
+                + 'echo "Error getting script directory" >&2\n' \
+                + 'exit 1\n' \
+                + '}\n'
+                + f'{terminal_cmd} "bash -c \'"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}"\'')
 
 if my_platform != "Windows":
     try:
-        subprocess.call(make_script_executable + " "\
-        + "\"" + full_root_filepath + click_me + "\"", shell=True)
+        subprocess.call(f'{make_script_executable} "{full_root_filepath}{click_me}"', shell=True)
         print(click_me + " file can be clicked to render your video.")
     except:
         print("Can't make file executable. You will need to go to properties\
@@ -1033,7 +1018,7 @@ if blender_audio_codec != "NONE":
         user_wants_to_convert_audio = True
 
     #----[ SET PATH TO THE PRIMARY EXPORTED AUDIO FILE: WAV(PCM) ]
-    path_to_wav = path_to_av_source + wav_filename
+    path_to_wav = os.path.join(path_to_av_source, wav_filename)
 
     #----[ SET AUDIO FILE EXTENSIONS ]
     if export_audio_codec == "PCM":
@@ -1053,22 +1038,20 @@ if blender_audio_codec != "NONE":
 
     print(" Extracting Audio as " + export_audio_container + "("\
     + export_audio_codec + ")")
-    path_to_save_pcm = path_to_av_source\
-        + wav_filename\
-        + export_audio_file_extension
+    path_to_save_pcm = path_to_wav + export_audio_file_extension
 
     blender_audio_extract_time_start = time.time()                             #  | Start PCM audio timer
 
-    bpy.ops.sound.mixdown(\
-        filepath=path_to_save_pcm,\
-        relative_path=False,\
-        check_existing=False,\
-        accuracy=export_audio_accuracy,\
-        container=export_audio_container,\
-        codec=export_audio_codec,\
-        format=export_audio_format,\
-        bitrate=export_audio_bitrate,\
-        split_channels=export_audio_split_channels\
+    bpy.ops.sound.mixdown(
+        filepath=path_to_save_pcm,
+        relative_path=False,
+        check_existing=False,
+        accuracy=export_audio_accuracy,
+        container=export_audio_container,
+        codec=export_audio_codec,
+        format=export_audio_format,
+        bitrate=export_audio_bitrate,
+        split_channels=export_audio_split_channels,
     )
 
     if blender_audio_volume != 1.0:                                            #  | If Project Volume is changed, adjust it.
@@ -1078,10 +1061,10 @@ if blender_audio_codec != "NONE":
         + "\"volume=" + str(blender_audio_volume) + "\""\
         + " " + "\"" + path_to_av_source\
         + wav_filename + "_newVolume" + export_audio_file_extension + "\""
-        subprocess.call(fix_volume, shell=True)
+        subprocess.call(fix_volume, shell=True) # TODO: b1f6c1c4
 
         move_wav_from = path_to_av_source\
-        + wav_filename + "_newVolume" + export_audio_file_extension
+        + wav_filename + "_newVolume" + export_audio_file_extension # TODO: b1f6c1c4
 
         move_wav_to = path_to_save_pcm
 
@@ -1090,8 +1073,7 @@ if blender_audio_codec != "NONE":
     blender_audio_extract_time_end = time.time()                               #  | End lossless audio timer
 
     #----[ CREATE LOSSY AUDIO COMMAND STRING ]
-    path_to_compressed_audio = path_to_av_source
-    path_to_compressed_audio += wav_filename + "." # add extension later.
+    path_to_compressed_audio = path_to_wav + "." # add extension later.
 
     if blender_audio_codec == "AAC":                                           #  | Make acception for AAC codec
         path_to_compressed_audio += "m4a"                                      #  | Use .m4a extension instead of .aac
@@ -1105,9 +1087,7 @@ if blender_audio_codec != "NONE":
         hold_audio_codec = blender_audio_codec.lower()                         #  | Used for audio extension of all but aac
         path_to_compressed_audio += blender_audio_codec.lower()
 
-    wav_to_compressed_audio = "\"" + path_to_ffmpeg + "\""\
-    + can_we_overwrite + " -i " + "\"" + path_to_wav\
-    + export_audio_file_extension + "\" -c:a "
+    wav_to_compressed_audio = f'"{path_to_ffmpeg}"{can_we_overwrite} -i "{path_to_wav}{export_audio_file_extension}" -c:a '
     if use_libfdk_acc:                                                         #  | If libfdk_acc is available it can be used here.
         wav_to_compressed_audio += "libfdk_acc" + " -b:a "
     else:
@@ -1146,19 +1126,18 @@ if blender_audio_codec != "NONE":
     if blender_audio_codec == "AAC":
         if not use_libfdk_acc:
             wav_to_compressed_audio += " -strict experimental"                 #  | strict experimental makes AAC encode work. (Legacy: phased out on builds after 12/5/2015)
-    
+
     if blender_audio_codec == "VORBIS":
         wav_to_compressed_audio += " -strict experimental"                     #  | strict experimental makes VORBIS encode work.
 
     if blender_audio_codec == "OPUS":
         wav_to_compressed_audio += " -strict experimental"                     #  | strict experimental makes OPUS encode work.
 
-    wav_to_compressed_audio += " \"" + path_to_compressed_audio + "\""
+    wav_to_compressed_audio += f' "{path_to_compressed_audio}"'
 
     #----[ CONVERT THE AUDIO ]
     if user_wants_to_convert_audio:
-        print(" Converting Audio using " + blender_audio_codec + " codec"\
-         + " using bitrate of " + str(blender_audio_bitrate) + "k")
+        print(f' Converting Audio using {blender_audio_codec} codec using bitrate of {str(blender_audio_bitrate)}k')
         audio_conversion_time_start = time.time()                              #  | Start audio conversion timer
 
         #----[ CONVERT WAV TO COMPRESSED FORMAT ]
@@ -1198,8 +1177,8 @@ elif blender_vid_format == "OGG":
     file_extension = ".ogv"
 elif blender_vid_format == "QUICKTIME":
     file_extension = ".mov"
-elif blender_vid_format == "WEBM": 
-    file_extension = ".webm"    
+elif blender_vid_format == "WEBM":
+    file_extension = ".webm"
 
 #______________________________________________________________________________
 #
@@ -1211,7 +1190,7 @@ portion_of_frames_per_core = math.ceil(total_number_of_frames / cores_enabled)
 
 #----[ GET THE FILENAME OF YOUR CUSTOM BLEND FILE ]
 filename = bpy.path.basename(bpy.context.blend_data.filepath)
-filename_and_path = full_root_filepath + filename
+filename_and_path = os.path.join(full_root_filepath, filename)
 
 #----[ INITIAL LOOP VARIABLES ]
 next_core = 1
@@ -1223,23 +1202,20 @@ while next_core <= cores_enabled:
     blender_command = blender_command + start_blender
     #----[ IF WINDOWS PLATFORM IS PRESENT, CREATE INDIVIDUAL LOCK FILES ]
     if my_platform == "Windows":
-        blender_command += r'9>"%lock%' + str(next_core) + r'" '               #  | only Windows needs to create a lock file for each blender job.
+        blender_command += fr'9>\"%lock%{str(next_core)}\" '  #  | only Windows needs to create a lock file for each blender job.
 
-    blender_command +=\
-        "\"" + blender_path + "\"" " -b \"%s\"" % (filename_and_path)\
-        + " -P " + "\"" + os.path.join(path_to_other_files, blendfile_override_setting_filename) + "\""\
-        + " -E %s" % (blender_render_engine)\
-        + " -s %d" % (new_start_frame_number)\
-        + " -e %d" % (new_end_frame_number)
+    blender_command += \
+        f'"{blender_path}" -b "{filename_and_path}"' \
+        + f' -P "{os.path.join(path_to_other_files, blendfile_override_setting_filename)}"' \
+        + f' -E {blender_render_engine}' \
+        + f' -s {new_start_frame_number:d}' \
+        + f' -e {new_end_frame_number:d}'
 
     if not blender_image_sequence:
-        blender_command +=\
-        " -o \"%s" % path_to_av_source\
-        + "%d%s\" -a" % (next_core, file_extension) + ampersand + "\n"
-    elif blender_image_sequence:
-        blender_command +=\
-        " -o \"%s" % img_sequence_dir\
-        + "//\" -F " + blender_file_format + " -x 1 -a" + ampersand + "\n"
+        fn = f'{next_core:d}{file_extension}'
+        blender_command += f' -o "{os.path.join(path_to_av_source, fn)}" -a{ampersand}\n'
+    else:
+        blender_command += f' -o "{img_sequence_dir}//" -F {blender_file_format} -x 1 -a{ampersand}\n'
 
     new_start_frame_number = new_end_frame_number + 1
     new_end_frame_number = new_start_frame_number + portion_of_frames_per_core
@@ -1279,7 +1255,7 @@ if my_platform == "Windows":                                                   #
 #=============================================================================#
 
 if blender_image_sequence:
-    full_command_string = blender_command + wait_here 
+    full_command_string = blender_command + wait_here
 #______________________________________________________________________________
 #
 #                              VIDEO CONCATENATION
@@ -1288,38 +1264,25 @@ if blender_image_sequence:
 if not blender_image_sequence:
 
     #----[ SET VARIABLES FOR CONCATENATION ]
-    joined_video_no_audio = path_to_av_source\
-    + joined_video
+    joined_video_no_audio = os.path.join(path_to_av_source, joined_video)
 
     num_vids = 1
     vid_file = ""
 
-    concat_file = path_to_other_files + concat
+    concat_file = os.path.join(path_to_other_files, concat)
 
-    while num_vids<=cores_enabled:
-        vid_file += "file '" + \
-        "%s%s%s'\n" % (path_to_av_source, num_vids, file_extension)
+    while num_vids <= cores_enabled:
+        fn = f'{num_vids}{file_extension}'
+        vid_file += f"file '{os.path.join(path_to_av_source, fn)}'\n"
         num_vids += 1
 
     with open(concat_file, "w+") as f:
         f.write(vid_file)
 
     #----[ CREATE COMMAND STRING FOR VIDEO CONCATENATION ]
-    full_command_string =\
-        blender_command\
-        + wait_here\
-        + "\""\
-        + path_to_ffmpeg\
-        + "\""\
-        + " -f concat -safe 0" + can_we_overwrite + " -i "\
-        + "\""\
-        + concat_file\
-        + "\""\
-        + " -c copy "\
-        + "\""\
-        + joined_video_no_audio\
-        + file_extension\
-        + "\""
+    full_command_string = \
+        f'{blender_command}{wait_here}"{path_to_ffmpeg}" -f concat -safe 0{can_we_overwrite} ' + \
+        f'-i "{concat_file}" -c copy "{joined_video_no_audio}{file_extension}"'
 
     full_command_string += end_line + wait_here                                #  | Bash's 'wait' prevents continuing until all jobs are done. I <3 U Bash
 
@@ -1329,21 +1292,12 @@ if not blender_image_sequence:
     #__________________________________________________________________________
 
     #----[ SET PATH TO FINISHED VIDEO FILE WITH AUDIO ]
-    joined_video_with_audio = full_root_filepath + audio_and_video
+    joined_video_with_audio = os.path.join(full_root_filepath, audio_and_video)
 
     #----[ CREATE A STRING THAT ADDS AUDIO TO VIDEO ]
     if blender_audio_codec != "NONE":
-        full_command_string +=\
-            "\""\
-            + path_to_ffmpeg \
-            + "\""\
-            + can_we_overwrite + " -i "\
-            + "\""\
-            + joined_video_no_audio\
-            + file_extension\
-            + "\""\
-            + can_we_overwrite + " -i "\
-            + "\""
+        full_command_string += \
+            f'"{path_to_ffmpeg}"{can_we_overwrite} -i "{joined_video_no_audio}{file_extension}"{can_we_overwrite} -i "'
 
         if user_wants_to_convert_audio:
             full_command_string += path_to_compressed_audio
@@ -1368,43 +1322,18 @@ if not blender_image_sequence:
 #______________________________________________________________________________
 
     if render_gif:
-
-        full_command_string +=\
-        "\"" \
-        + path_to_ffmpeg \
-        + "\"" \
-        + " -v warning -i " \
-        + "\"" \
-        + joined_video_no_audio \
-        + file_extension \
-        + "\""\
-        + " -vf \"fps=" + str(gif_framerate) + ",scale=" + str(gif_scale) \
-        + ":-1:flags=" \
-        + the_scaler \
-        + ",palettegen=stats_mode=" + stats_mode \
-        + "\" -y \"" + path_to_av_source \
-        + png_pallette + "\""
+        full_command_string += \
+            f'"{path_to_ffmpeg}" -v warning -i "{os.path.join(joined_video_no_audio, file_extension)}" ' \
+            + f'-vf "fps={str(gif_framerate)},scale={str(gif_scale)}:-1:flags={the_scaler},palettegen=stats_mode={stats_mode}" ' \
+            + f'-y "{os.path.join(path_to_av_source, png_pallette)}"'
 
         full_command_string += end_line
 
-        full_command_string +=\
-        "\""\
-        + path_to_ffmpeg \
-        + "\""\
-        + " -v warning -i "\
-        + "\""\
-        + joined_video_no_audio\
-        + file_extension\
-        + "\""\
-        + " -i \"" \
-        + path_to_av_source + png_pallette \
-        + "\" -lavfi \"fps=" + str(gif_framerate) + ",scale=" + str(gif_scale)\
-        + ":-1:flags=" \
-        + the_scaler \
-        + " [x]; [x][1:v] paletteuse=dither=" \
-        + dither_options \
-        + "\" -y \"" + full_root_filepath + final_gif_name\
-        + "\""
+        full_command_string += \
+            f'"{path_to_ffmpeg}" -v warning -i "{os.path.join(joined_video_no_audio, file_extension)}" ' \
+            + f'-i "{os.path.join(path_to_av_source, png_pallette)}" ' \
+            + f'-lavfi "fps={str(gif_framerate)},scale={str(gif_scale)}:-1:flags={the_scaler} [x]; [x][1:v] paletteuse=dither={dither_options}" ' \
+            + f'-y "{os.path.join(full_root_filepath, final_gif_name)}"'
 
 #______________________________________________________________________________
 #
@@ -1412,16 +1341,14 @@ if not blender_image_sequence:
 #______________________________________________________________________________
 
 #----[ SET PATH TO THE RENDER FILE ]
-render_filename_location = path_to_other_files\
-+ render_filename
+render_filename_location = os.path.join(path_to_other_files, render_filename)
 
 #----[ WRITE COMMAND STRINGS TO FILE ]
 with open(render_filename_location, "w+") as f:
     f.write(full_command_string)
 
 #----[ CREATE EXECUTABLE RENDER FILE COMMAND ]
-commands_to_execute = use_bash + "\"" \
-+ path_to_other_files + render_filename + "\""
+commands_to_execute = f'{use_bash}"{render_filename_location}"'
 print(commands_to_execute)
 
 #----[ EXECUTE THE RENDER COMMAND FILE ]
@@ -1459,8 +1386,7 @@ and not blender_image_sequence:
 #----[ IF IMAGE SEQUENCE EXISTS, MOVE ANY WANTED AUDIO UP A DIRECTORY ]
 if blender_image_sequence and blender_audio_codec != "NONE":
     if not user_wants_to_convert_audio:
-        move_from = path_to_av_source\
-        + wav_filename\
+        move_from = path_to_av_source + wav_filename\
         + export_audio_file_extension
         move_to = full_root_filepath + wav_filename + "_for_"\
         + img_sequence_dir + export_audio_file_extension # TODO: b1f6c1c4
