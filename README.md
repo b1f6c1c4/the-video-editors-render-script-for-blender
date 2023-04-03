@@ -3,10 +3,10 @@
 Based on [*mikeycal*'s script](https://github.com/mikeycal/the-video-editors-render-script-for-blender).
 
 Modifications:
-- Only Linux officially supported.
 - Works with Blender 3.x
-- More intuitive output files
-- No more `_Click_to_Render_` thing.
+- More intuitive &amp; predictive output files
+- No more `_Click_to_Render_` scripts.
+- Smoothen file/folder overwriting experience.
 
 To get the script:
 
@@ -14,10 +14,10 @@ To get the script:
 git get https://github.com/b1f6c1c4/the-video-editors-render-script-for-blender/blob/master/video_editors_render_script.py
 ```
 
-### Recommended workflow 0:
+### Recommended way of using the script:
 
-**Prerequisite**:
-Dead simple, one-line solution of rendering.
+<details>
+<summary>Dead simple, one-line solution of multicore rendering</summary>
 
 1. In your Blender, set Scene Properties:
    * File Format: `FFmpeg Video`
@@ -31,20 +31,17 @@ Dead simple, one-line solution of rendering.
       * Audio Codec: `AAC` or `Vorbis`
       * Bitrate: 192
 
-2. _(Optional)_ `ssfhs` or NFS mount `.blend` file as well as media files
-
-3. Invoke the script:
+2. Invoke the script:
 
     ```bash
     blender -b <path-to-your-.blend> -P <path-to-video_editors_render_script.py>
     ```
 
-4. Verify that, in the same folder as `.blend`, `**-video.avi` exists.
+3. Verify that, in the same folder as `.blend`, `**-video.avi` exists.
+</details>
 
-### Recommended workflow 1:
-
-**Prerequisite**:
-You have a long video, and you want to FFmpeg yourself.
+<details>
+<summary>I have a long video, and I want to FFmpeg myself</summary>
 
 1. In your Blender, set Scene Properties:
     * File Format: `FFmpeg Video`
@@ -74,10 +71,12 @@ You have a long video, and you want to FFmpeg yourself.
           -c:v hevc_nvenc -crf 18 -c:a aac -b:a 128k \
           <output.mkv>
       ```
+</details>
 
-### Recommended workflow 2:
+<details>
+<summary>I have extremely large memory &amp; disk space</summary>
 
-**Prerequisite**:
+**Requirement:**
 Your video is very short, and both `/tmp` and output dir (same dir as `.blend`) are very large.
 We need 400MB / second / 1080p60.
 Preferably, `/tmp` is tmpfs, and your disk has very high R/W speed.
@@ -103,10 +102,12 @@ Preferably, `/tmp` is tmpfs, and your disk has very high R/W speed.
            -map 0:v:0 -map 1:a:0 \
            <output.mkv> -async 1
        ```
+</details>
 
-### Recommended workflow 3:
+<details>
+<summary>I want to inspect individual frames</summary>
 
-**Prerequisite**:
+**Requirement:**
 Your video is short, and output dir (same as `.blend` or another one) is large.
 We need 150MB / second / 1080p60.
 
@@ -136,6 +137,7 @@ We need 150MB / second / 1080p60.
           -map 0:v:0 -map 1:a:0 \
           <output.mkv> -async 1
       ```
+</details>
 
 ### Legal
 
