@@ -236,7 +236,6 @@ name_of_script = os.path.basename(__file__)
 #______________________________________________________________________________
 
 if my_platform == "Windows": # Windows 10
-    slash = "\\"                                                               #  | Operating system slash direction
     start_blender = start_ffmpeg = r'start " " /max /B '                       #  | Leave this setting. Win10 v1809+ build broke start - now needs /max arg to work.
     wait_here = ampersand = use_bash = ""                                      #  | Windows doesn't use - leave empty
     render_filename = "render.bat"                                             #  | Executable OS Commands Stored here
@@ -247,7 +246,6 @@ if my_platform == "Windows": # Windows 10
     terminal_cmd = ""
 
 elif my_platform == "Darwin": # APPLE OSX
-    slash = r"/"                                                               #  | Operating system slash direction
     start_blender = start_ffmpeg = ""                                          #  | Only Windows uses this - Set to empty
     wait_here = "wait;"                                                        #  | this wait prevents execution until blender is done.
     ampersand = "&"                                                            #  | This places blender instance in background.
@@ -259,7 +257,6 @@ elif my_platform == "Darwin": # APPLE OSX
     terminal_cmd = ""
 
 elif my_platform == "Linux": # GNU/LINUX
-    slash = r"/"                                                               #  | Operating system slash direction
     start_blender = start_ffmpeg = ""                                          #  | Only Windows uses this - Set to empty
     wait_here = "wait;"                                                        #  | This is used to wait until background commands finish
     ampersand = "&"                                                            #  | This is used to send commmand to background
@@ -270,7 +267,6 @@ elif my_platform == "Linux": # GNU/LINUX
     make_script_executable = "chmod a+x"                                       #  | We need to make the file executable
 
 else: # OTHER OPERATING SYSTEMS WITH ACCESS TO BASH SHELL
-    slash = r"/"                                                               #  | Operating system slash direction
     start_blender = start_ffmpeg = ""                                          #  | Only Windows uses this - Set to empty
     wait_here = "wait;"                                                        #  | This is used to wait until background commands finish
     ampersand = "&"                                                            #  | This is used to send commmand to background
@@ -310,13 +306,11 @@ if not my_file.is_file():
     exit()
 
 #----[ FIND THE PATH TO THIS SCRIPT ]
-full_root_filepath = os.path.dirname(bpy.data.filepath) + slash
+full_root_filepath = os.path.dirname(bpy.data.filepath)
 
 #----[ GIVE TEMP FILE-FOLDERS NAMES ]
-working_dir_temp = "Script_Working_Folder"
-av_src_dir = "AV_Source"
-other_files_dir = "Other_Files"                                                #  | Look at "render." file in this folder to see the "secret sauce."
-img_sequence_dir = "IMG_Sequence"
+working_dir_temp = os.path.abspath(os.path.join(full_root_filepath, "Script_Working_Folder"))
+img_sequence_dir = os.path.abspath(os.path.join(full_root_filepath, "IMG_Sequence"))
 
 #----[ GIVE TEMP FILES NAMES ]
 wav_filename = "Full_Audio"
@@ -333,10 +327,8 @@ blendfile_override_setting_filename = "OverrideSettings.py"
 
 #----[ SET SCRIPT DEFAULTS VARIABLES ]
 blender_command = full_command_string = "" # (Default= "")
-rel_path_to_av_source = working_dir_temp + slash + av_src_dir + slash
-relative_path_to_other_files = working_dir_temp + slash + other_files_dir\
-+ slash
-relative_path_to_img_sequence = img_sequence_dir + slash
+path_to_av_source = os.path.join(working_dir_temp, "AV_Source") + '/'
+path_to_other_files = os.path.join(working_dir_temp, "Other_Files") + '/' #  | Look at "render." file in this folder to see the "secret sauce."
 
 #----[ PCM MIXDOWN SETTINGS (LOSSLESS) ]
 export_audio_container = "WAV" # (Default: "WAV")
@@ -949,14 +941,11 @@ the first Scene showing. (First Scene is usually named, \"Scene\")\n\n"
 
 #----[ CREATE FOLDERS TO STORE GENERATED TEMP FILES ]
 
-if not os.path.exists(full_root_filepath + working_dir_temp + slash\
-+ av_src_dir):
-    os.makedirs(full_root_filepath + working_dir_temp + slash + av_src_dir)
+if not os.path.exists(path_to_av_source):
+    os.makedirs(path_to_av_source)
 
-if not os.path.exists(full_root_filepath + working_dir_temp + slash\
-+ other_files_dir):
-    os.makedirs(full_root_filepath + working_dir_temp + slash\
-    + other_files_dir)
+if not os.path.exists(path_to_other_files):
+    os.makedirs(path_to_other_files)
 
 #----[ CREATE RENDER SHORTCUT ]                                                #  | After running script once, clickable file is generated to run script again.
 
@@ -1013,8 +1002,7 @@ and make the file named: " + click_me + "executable. This will allow clicking\
 to render." )
 
 #----[ CREATE .BLEND OVERRIDE FILE ]
-with open(full_root_filepath + working_dir_temp + slash + other_files_dir +\
-slash + blendfile_override_setting_filename, "w+") as f:
+with open(os.path.join(path_to_other_files, blendfile_override_setting_filename), "w+") as f:
     f.write(blendfile_override_setting)
 
 #_______________________________________________________________________________
@@ -1045,7 +1033,7 @@ if blender_audio_codec != "NONE":
         user_wants_to_convert_audio = True
 
     #----[ SET PATH TO THE PRIMARY EXPORTED AUDIO FILE: WAV(PCM) ]
-    path_to_wav = full_root_filepath + rel_path_to_av_source + wav_filename
+    path_to_wav = path_to_av_source + wav_filename
 
     #----[ SET AUDIO FILE EXTENSIONS ]
     if export_audio_codec == "PCM":
@@ -1065,8 +1053,7 @@ if blender_audio_codec != "NONE":
 
     print(" Extracting Audio as " + export_audio_container + "("\
     + export_audio_codec + ")")
-    path_to_save_pcm = full_root_filepath\
-        + rel_path_to_av_source\
+    path_to_save_pcm = path_to_av_source\
         + wav_filename\
         + export_audio_file_extension
 
@@ -1089,12 +1076,11 @@ if blender_audio_codec != "NONE":
         fix_volume = "\"" + path_to_ffmpeg + "\"" + " -i " + "\""\
         + path_to_save_pcm + "\"" + " -af "\
         + "\"volume=" + str(blender_audio_volume) + "\""\
-        + " " + "\"" + full_root_filepath\
-        + rel_path_to_av_source\
+        + " " + "\"" + path_to_av_source\
         + wav_filename + "_newVolume" + export_audio_file_extension + "\""
         subprocess.call(fix_volume, shell=True)
 
-        move_wav_from = full_root_filepath + rel_path_to_av_source\
+        move_wav_from = path_to_av_source\
         + wav_filename + "_newVolume" + export_audio_file_extension
 
         move_wav_to = path_to_save_pcm
@@ -1104,7 +1090,7 @@ if blender_audio_codec != "NONE":
     blender_audio_extract_time_end = time.time()                               #  | End lossless audio timer
 
     #----[ CREATE LOSSY AUDIO COMMAND STRING ]
-    path_to_compressed_audio = full_root_filepath + rel_path_to_av_source
+    path_to_compressed_audio = path_to_av_source
     path_to_compressed_audio += wav_filename + "." # add extension later.
 
     if blender_audio_codec == "AAC":                                           #  | Make acception for AAC codec
@@ -1241,19 +1227,18 @@ while next_core <= cores_enabled:
 
     blender_command +=\
         "\"" + blender_path + "\"" " -b \"%s\"" % (filename_and_path)\
-        + " -P " + "\"" + full_root_filepath + working_dir_temp + slash\
-        + other_files_dir + slash + blendfile_override_setting_filename + "\""\
+        + " -P " + "\"" + os.path.join(path_to_other_files, blendfile_override_setting_filename) + "\""\
         + " -E %s" % (blender_render_engine)\
         + " -s %d" % (new_start_frame_number)\
         + " -e %d" % (new_end_frame_number)
 
     if not blender_image_sequence:
         blender_command +=\
-        " -o \"%s%s" % (full_root_filepath, rel_path_to_av_source)\
+        " -o \"%s" % path_to_av_source\
         + "%d%s\" -a" % (next_core, file_extension) + ampersand + "\n"
     elif blender_image_sequence:
         blender_command +=\
-        " -o \"%s%s" % (full_root_filepath, relative_path_to_img_sequence)\
+        " -o \"%s" % img_sequence_dir\
         + "//\" -F " + blender_file_format + " -x 1 -a" + ampersand + "\n"
 
     new_start_frame_number = new_end_frame_number + 1
@@ -1303,17 +1288,17 @@ if blender_image_sequence:
 if not blender_image_sequence:
 
     #----[ SET VARIABLES FOR CONCATENATION ]
-    joined_video_no_audio = full_root_filepath + rel_path_to_av_source\
+    joined_video_no_audio = path_to_av_source\
     + joined_video
 
     num_vids = 1
     vid_file = ""
 
-    concat_file = full_root_filepath + relative_path_to_other_files + concat
+    concat_file = path_to_other_files + concat
 
     while num_vids<=cores_enabled:
-        vid_file += "file '" + full_root_filepath +\
-        "%s%s%s'\n" % (rel_path_to_av_source, num_vids, file_extension)
+        vid_file += "file '" + \
+        "%s%s%s'\n" % (path_to_av_source, num_vids, file_extension)
         num_vids += 1
 
     with open(concat_file, "w+") as f:
@@ -1397,7 +1382,7 @@ if not blender_image_sequence:
         + ":-1:flags=" \
         + the_scaler \
         + ",palettegen=stats_mode=" + stats_mode \
-        + "\" -y \"" + full_root_filepath + rel_path_to_av_source \
+        + "\" -y \"" + path_to_av_source \
         + png_pallette + "\""
 
         full_command_string += end_line
@@ -1411,8 +1396,8 @@ if not blender_image_sequence:
         + joined_video_no_audio\
         + file_extension\
         + "\""\
-        + " -i \"" + full_root_filepath \
-        + rel_path_to_av_source + png_pallette \
+        + " -i \"" \
+        + path_to_av_source + png_pallette \
         + "\" -lavfi \"fps=" + str(gif_framerate) + ",scale=" + str(gif_scale)\
         + ":-1:flags=" \
         + the_scaler \
@@ -1427,7 +1412,7 @@ if not blender_image_sequence:
 #______________________________________________________________________________
 
 #----[ SET PATH TO THE RENDER FILE ]
-render_filename_location = full_root_filepath + relative_path_to_other_files\
+render_filename_location = path_to_other_files\
 + render_filename
 
 #----[ WRITE COMMAND STRINGS TO FILE ]
@@ -1435,8 +1420,8 @@ with open(render_filename_location, "w+") as f:
     f.write(full_command_string)
 
 #----[ CREATE EXECUTABLE RENDER FILE COMMAND ]
-commands_to_execute = use_bash + "\"" + full_root_filepath\
-+ relative_path_to_other_files + render_filename + "\""
+commands_to_execute = use_bash + "\"" \
++ path_to_other_files + render_filename + "\""
 print(commands_to_execute)
 
 #----[ EXECUTE THE RENDER COMMAND FILE ]
@@ -1474,17 +1459,17 @@ and not blender_image_sequence:
 #----[ IF IMAGE SEQUENCE EXISTS, MOVE ANY WANTED AUDIO UP A DIRECTORY ]
 if blender_image_sequence and blender_audio_codec != "NONE":
     if not user_wants_to_convert_audio:
-        move_from = full_root_filepath + rel_path_to_av_source\
+        move_from = path_to_av_source\
         + wav_filename\
         + export_audio_file_extension
         move_to = full_root_filepath + wav_filename + "_for_"\
-        + img_sequence_dir + export_audio_file_extension
+        + img_sequence_dir + export_audio_file_extension # TODO: b1f6c1c4
         shutil.move(move_from, move_to)
 
     elif user_wants_to_convert_audio:
         move_from = path_to_compressed_audio
         move_to = full_root_filepath + wav_filename + "_for_ "\
-        + img_sequence_dir + "." + hold_audio_codec
+        + img_sequence_dir + "." + hold_audio_codec # TODO: b1f6c1c4
         shutil.move(move_from, move_to)
 
 #----[ DELETE WORKING DIRECTORY ]
