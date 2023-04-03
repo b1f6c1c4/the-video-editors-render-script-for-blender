@@ -99,26 +99,22 @@ if my_platform == "Windows": #SET MICROSOFT WINDOWS PATHS BELOW
     blender_path = r"C:\Program Files\Blender Foundation\Blender\blender.exe"  #  | (leave "r" prefix) python doesn't like \ slashes
     path_to_ffmpeg = r"C:\ffmpeg\bin\ffmpeg.exe"                               #  | (leave "r" prefix) python doesn't like \ slashes
     assumed_blend_filename = "1.blend"                                         #  | Save as... "1.blend" (Script looks for 1.blend file in script directory.)
-    click_me = "Windows_Click_to_Render.bat"                                   #  | Created Clickable Render File
 
 elif my_platform == "Darwin": # APPLE OSX PATHS BELOW
     blender_path = "/Applications/Blender/blender.app/Contents/MacOS/blender"
     path_to_ffmpeg = "/Applications/ffmpeg"
     assumed_blend_filename = "1.blend"                                         #  |  Save as... "1.blend" (Script looks for 1.blend file in script directory.)
-    click_me = "OSX_Click_to_Render.command"                                   #  |  Created Clickable Render File
 
 elif my_platform == "Linux": # GNU/LINUX PATHS BELOW
     blender_path = "/usr/bin/blender"                                                   #  |  Set to path of blender
     path_to_ffmpeg = "/usr/bin/ffmpeg"                                                  #  |  Set to path of ffmpeg
     assumed_blend_filename = "1.blend"                                         #  |  Save as... "1.blend" (Script looks for 1.blend file in directory.)
-    click_me = "Linux_Click_to_Render.sh"                                      #  |  Created Clickable Render File
     terminal_cmd = "gnome-terminal -e"                                         #  |  Terminals: gnome-terminal -e, konsole -e, xterm -e, guake -e, terminator -e
 
 else: # OTHER OPERATING SYSTEMS PATHS BELOW
     blender_path = "blender"
     path_to_ffmpeg = "ffmpeg"
     assumed_blend_filename = "1.blend"                                         #  |  Save as... "1.blend" (Script looks for 1.blend file in script directory.)
-    click_me = "Click_to_Render.sh"                                            #  |  Created Clickable Render File
     terminal_cmd = "gnome-terminal -e"                                         #  |  Terminals: gnome-terminal -e, konsole -e, xterm -e, guake -e, terminator -e
 
 #______________________________________________________________________________
@@ -904,43 +900,6 @@ if True:
 
     if not os.path.exists(path_to_other_files):
         os.makedirs(path_to_other_files)
-
-    #----[ CREATE RENDER SHORTCUT ]                                                #  | After running script once, clickable file is generated to run script again.
-
-    with open(os.path.join(full_root_filepath, click_me), "w+") as f:
-        if my_platform == "Windows":
-            f.write(f'echo off\n"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}')
-
-        elif my_platform == "Darwin":
-            f.write('#!/bin/bash\n'
-                    + 'cd "$(dirname \"$BASH_SOURCE\")" || {\n'
-                    + 'echo "Error getting script directory" >&2\n'
-                    + 'exit 1\n'
-                    + '}\n'
-                    + f'"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}')
-
-        elif my_platform == "Linux":
-            f.write('#!/bin/bash\n'
-                    + 'cd "$(dirname \"$BASH_SOURCE\")" || {\n'
-                    + 'echo "Error getting script directory" >&2\n'
-                    + 'exit 1\n'
-                    + '}\n'
-                    + f'{terminal_cmd} "bash -c \'"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}"\'')
-
-        else:
-            f.write('#!/bin/bash\n'
-                    + 'cd "$(dirname \"$BASH_SOURCE\")" || {\n'
-                    + 'echo "Error getting script directory" >&2\n'
-                    + 'exit 1\n'
-                    + '}\n'
-                    + f'{terminal_cmd} "bash -c \'"{blender_path}" -b {assumed_blend_filename} -P {name_of_script}"\'')
-
-    if my_platform != "Windows":
-        try:
-            subprocess.call(f'{make_script_executable} "{full_root_filepath}{click_me}"', shell=True)
-            print(click_me + " file can be clicked to render your video.")
-        except:
-            print(f"Can't make file executable. You will need to go to properties and make the file named: {click_me} executable. This will allow clicking to render.")
 
     #----[ CREATE .BLEND OVERRIDE FILE ]
     with open(os.path.join(path_to_other_files, blendfile_override_setting_filename), "w+") as f:

@@ -7,6 +7,7 @@ Modifications:
 - Works with Blender 3.x
 - _WIP_ Render over ssh
 - _WIP_ CUDA accelerate
+- No more `_Click_to_Render_` thing.
 
 ### TL;DR
 
