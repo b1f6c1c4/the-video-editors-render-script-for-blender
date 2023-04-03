@@ -162,6 +162,7 @@ auto_overwrite_files = True #(Default: True) [True or False]
 #--------------------------------------------------------------------#
 
 separate_audio_video = False #(Default: False) [True or False]
+force_lossless_audio = True #(Default: True) [True or False]
 
 #----[ FFMPEG COMMAND LINE ARGUMENTS USED TO MUX FINAL VIDEO ]                 #  | e.g.: ffmpeg -i video.mp4 -i FullAudio.m4a [arg1] FinishedVideo.mp4 [arg2]
 post_full_audio = "-c:v copy -c:a copy -map 0:v:0 -map 1:a:0"                  #  | Essential arguments used to Mux Final Audio/Video (! DON'T CHANGE !)
@@ -710,18 +711,29 @@ if True:
 
 if True:
 
-    if blender_audio_codec is not None:
-        if blender_audio_codec == "AAC":
-            hold_audio_codec = "m4a"
-        elif blender_audio_codec == "VORBIS":
-            hold_audio_codec = "ogg"
-        else:
-            hold_audio_codec = blender_audio_codec.lower()                         # | Used for audio extension of all but aac
-        output_audio_file += "." + hold_audio_codec
+    # ----[ GIFS DON'T USE AUDIO ]
+    if render_gif:
+        blender_audio_codec = "NONE"  # | GIF setting will disable Audio
 
-    if blender_file_format in ("AVI_JPEG","AVI_RAW"):
+    def make_lossless_audio():
+        global blendfile_override_setting
+
+    if blender_image_sequence or blender_file_format in ("AVI_JPEG", "AVI_RAW"):
+        if not force_lossless_audio:
+            blender_audio_codec = "NONE"
+        else:
+            blender_audio_codec = "PCM"
+            blender_audio_bitrate = 192
+            blender_audio_volume = 1.0
+            blendfile_override_setting += \
+                '    scene.render.ffmpeg.audio_codec = "PCM"\n' \
+                + '    scene.render.ffmpeg.audio_bitrate = 192\n' \
+                + '    scene.render.ffmpeg.audio_volume = 1.0\n'
+            separate_audio_video = True
+
+    if blender_file_format in ("AVI_JPEG", "AVI_RAW"):
         file_extension = ".avi"
-    elif blender_vid_format in ("AVI","H264","XVID"):
+    elif blender_vid_format in ("AVI", "H264", "XVID"):
         file_extension = ".avi"
     elif blender_vid_format == "DV":
         file_extension = ".dv"
@@ -746,6 +758,15 @@ if True:
         exit(1)
     output_video_file += file_extension
 
+    if blender_audio_codec is not None:
+        if blender_audio_codec == "AAC":
+            hold_audio_codec = "m4a"
+        elif blender_audio_codec == "VORBIS":
+            hold_audio_codec = "ogg"
+        else:
+            hold_audio_codec = blender_audio_codec.lower()                         # | Used for audio extension of all but aac
+        output_audio_file += "." + hold_audio_codec
+
 #______________________________________________________________________________
 #
 #                               DETECT OVERWRITES
@@ -753,18 +774,12 @@ if True:
 
 if True:
 
-    # ----[ GIFS DON'T USE AUDIO ]
-    if render_gif:
-        blender_audio_codec = "NONE"  # | GIF setting will disable Audio
-
-    # ----[ TURN OFF AUDIO IF NOT TYPICALLY USED WITH FORMAT ]                      #  | Blender disables audio for these formats - so we will too.
-    if blender_file_format in ("AVI_JPEG", "AVI_RAW"):
-        separate_audio_video = True
-
+    writing_files = []
     overwriting_files = []
 
 
     def verify_overwrites(pa):
+        writing_files.append(pa)
         if os.path.exists(pa):
             overwriting_files.append(pa)
 
@@ -841,9 +856,15 @@ if display_script_settings_banner:
         print(" Auto Deletion of Temp Files is [ ON ]\n")
 
     if len(overwriting_files) > 0:
-        print(" WARNING: The following files will be overwritten:")
-        for f in overwriting_files:
-            print(f"   {f}")
+        print(" WARNING: Some output files (***) will be overwritten:")
+    else:
+        print(" Output files:")
+    for f in writing_files:
+        if f in overwriting_files:
+            print(f"   [{f}]***")
+        else:
+            print(f"   [{f}]")
+    print('')
 
     print_banner = 30 * "-" + "[ RENDER SETTINGS ]" + 30 * "-" + "\n\n"
 
@@ -898,7 +919,7 @@ if display_script_settings_banner:
         print_banner += f"\n  GIF RENDER is [ ON ]\n ([ {gif_framerate} FPS ] [ Stats:{stats_mode} ] "
         print_banner += f"[ Dither: {dither_options} ] [ X Scale: {str(gif_scale)}] [Scaler:{the_scaler}])\n"
 
-    if blender_audio_codec != "NONE" and not render_gif :
+    if blender_audio_codec != "NONE" and not render_gif:
         print_banner += "\n  AUDIO: [ " + blender_audio_codec
         if use_libfdk_acc:
             print_banner += " (libfdk)"
@@ -920,15 +941,11 @@ if display_script_settings_banner:
 
     print("\n" + 80 * "#" + "\n")
 
-    try:
-        while banner_wait_time:
-            time_format = f'Execution Will Begin in {banner_wait_time:02d} seconds'
-            print(time_format, end='\r')
-            time.sleep(1)
-            banner_wait_time -= 1
-    except Exception:
-        os.rmdir(working_dir_temp)
-        raise
+    while banner_wait_time:
+        time_format = f'Execution Will Begin in {banner_wait_time:02d} seconds'
+        print(time_format, end='\r')
+        time.sleep(1)
+        banner_wait_time -= 1
 
 #______________________________________________________________________________
 #
@@ -1001,7 +1018,7 @@ if blender_audio_codec != "NONE":
     )
     if blender_audio_volume != 1.0:                                            #  | If Project Volume is changed, adjust it.
         move_wav_from = f"{temp_to_wav}_newVolume{export_audio_file_extension}"
-        fix_volume = f'"{ffmpeg_path}" -loglevel warning -i "{temp_pcm}" ' \
+        fix_volume = f'"{ffmpeg_path}" -loglevel warning -strict -2 -i "{temp_pcm}" ' \
                      + f'-af "volume={blender_audio_volume}" "{move_wav_from}"'
         subprocess.call(fix_volume, shell=True)
         os.remove(temp_pcm)                                            #  | Delete the orginal WAV file
@@ -1017,7 +1034,7 @@ if blender_audio_codec != "NONE":
     else:
 
         #----[ CREATE LOSSY AUDIO COMMAND STRING ]
-        wav_to_compressed_audio = f'"{ffmpeg_path}" -loglevel warning -i "{temp_pcm}"'
+        wav_to_compressed_audio = f'"{ffmpeg_path}" -loglevel warning -strict -2 -i "{temp_pcm}"'
         if use_libfdk_acc:                                                         #  | If libfdk_acc is available it can be used here.
             wav_to_compressed_audio += " -c:a libfdk_acc "
         else:
@@ -1166,7 +1183,7 @@ if not blender_image_sequence:
         f.write(vid_file_list)
 
     #----[ CREATE COMMAND STRING FOR VIDEO CONCATENATION ]
-    full_command_string += f'"{ffmpeg_path}" -hide_banner -f concat -safe 0 -i "{concat_file}" -c copy '
+    full_command_string += f'"{ffmpeg_path}" -hide_banner -strict -2 -f concat -safe 0 -i "{concat_file}" -c copy '
     if (blender_audio_codec != "NONE" and not separate_audio_video) or render_gif:
         full_command_string += f'"{temp_video_without_audio}{file_extension}"\n'
     else:
@@ -1175,7 +1192,7 @@ if not blender_image_sequence:
     #----[ CREATE A STRING THAT ADDS AUDIO TO VIDEO ]
     if blender_audio_codec != "NONE" and not separate_audio_video:
         full_command_string += \
-            f'"{ffmpeg_path}" -hide_banner -i "{temp_video_without_audio}{file_extension}"' \
+            f'"{ffmpeg_path}" -hide_banner -strict -2 -i "{temp_video_without_audio}{file_extension}"' \
             + f' -i "{path_to_the_audio}"' \
             + f' {post_full_audio} "{output_video_file}" {post_full_audio_arg2}\n'
 
@@ -1186,12 +1203,12 @@ if not blender_image_sequence:
 
 if not blender_image_sequence and render_gif:
     full_command_string += \
-        f'"{ffmpeg_path}" -hide_banner -v warning -i "{temp_video_without_audio}{file_extension}" ' \
+        f'"{ffmpeg_path}" -loglevel warning -i "{temp_video_without_audio}{file_extension}" ' \
         + f'-vf "fps={gif_framerate},scale={gif_scale}:-1:flags={the_scaler},palettegen=stats_mode={stats_mode}" ' \
         + f'-y "{temp_png_palette}"\n'
 
     full_command_string += \
-        f'"{ffmpeg_path}" -hide_banner -v warning -i "{temp_video_without_audio}{file_extension}" ' \
+        f'"{ffmpeg_path}" -loglevel warning -i "{temp_video_without_audio}{file_extension}" ' \
         + f'-i "{temp_png_palette}" ' \
         + f'-lavfi "fps={gif_framerate},scale={gif_scale}:-1:flags={the_scaler} [x]; [x][1:v] paletteuse=dither={dither_options}" ' \
         + f'-y "{output_gif_file}"\n'
